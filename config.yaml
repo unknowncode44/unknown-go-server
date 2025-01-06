@@ -1,0 +1,11 @@
+server:
+  port: 4044
+  
+db:
+  host: 149.50.128.86
+  port: 35000
+  user: user
+  password: password
+  dbname: unknowndb
+  # sslmode: disable
+  timezone: america/buenos_aires
