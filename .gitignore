@@ -1,2 +1,5 @@
 # Ignore the configuration file containing sensitive data
 config.yaml
+
+# Ignore debug binaries
+__debug_*
