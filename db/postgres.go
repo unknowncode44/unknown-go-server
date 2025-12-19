@@ -5,9 +5,11 @@ package database
 
 import (
 	"fmt"
+	"log"
 	"sync"
 
 	"github.com/unknowncode44/unknown-go-server/config"
+	"github.com/unknowncode44/unknown-go-server/pkg/entities"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -51,12 +53,13 @@ func NewPostgresDatabase(conf *config.Config) Database {
 		}
 
 		// TODO:migracion
-		// err = db.AutoMigrate(&entities.Company{}, &entities.Branch{})
-		// if err != nil {
-		// 	log.Fatalf("Falla migrando la bd: %v", err)
-		// } else {
-		// 	fmt.Println("Migracion exitosa")
-		// }
+		db.Exec(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`)
+		err = db.AutoMigrate(&entities.Company{}, &entities.Branch{})
+		if err != nil {
+			log.Fatalf("Falla migrando la bd: %v", err)
+		} else {
+			fmt.Println("Migracion exitosa")
+		}
 
 		// caso contrario asignamos la instancia a nuestra variable
 		dbInstance = &postgresDatabase{Db: db}

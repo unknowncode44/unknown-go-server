@@ -38,7 +38,7 @@ func NewFiberServer(conf *config.Config, db database.Database) Server {
 	companyService := company.NewService(companyRepo)
 
 	// global api route
-	api := fiberApp.Group("/api")
+	api := fiberApp.Group("/api/v1")
 
 	routes.CompanyRouter(api, companyService)
 

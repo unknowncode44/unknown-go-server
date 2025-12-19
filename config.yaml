@@ -1,11 +1,11 @@
 server:
-  port: 4044
+  port: 4045
   
 db:
   host: 149.50.128.86
   port: 35000
   user: user
   password: password
-  dbname: unknowndb
+  dbname: quinar
   # sslmode: disable
   timezone: america/buenos_aires
