@@ -10,7 +10,7 @@ import (
 // Service es una interfaz que permite a nuestro módulo API acceder al repositorio de Material
 type Service interface {
 	Create(material *entities.Material) (*entities.Material, error)
-	// FindAll() ([]entities.Material, error)
+	FindAll() ([]entities.Material, error)
 	// FindByID(id uuid.UUID) (*entities.Material, error)
 	// Update(material *entities.Material) (*entities.Material, error)
 	// Deactivate(id uuid.UUID) error
@@ -42,4 +42,9 @@ func (s *service) Create(material *entities.Material) (*entities.Material, error
 	material.IsActive = true
 
 	return s.repo.Create(material)
+}
+
+// Logica para obtener todos los materiales
+func (s *service) FindAll() ([]entities.Material, error) {
+	return s.repo.FindAll()
 }
