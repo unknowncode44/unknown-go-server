@@ -13,7 +13,7 @@ type Service interface {
 	FindAll() ([]entities.Material, error)
 	FindByID(id uuid.UUID) (*entities.Material, error)
 	Update(material *entities.Material) (*entities.Material, error)
-	// Deactivate(id uuid.UUID) error
+	Deactivate(id uuid.UUID) error
 }
 
 type service struct {
@@ -62,4 +62,24 @@ func (s *service) Update(material *entities.Material) (*entities.Material, error
 		return nil, errors.New("La id del material es requerida")
 	}
 	return s.repo.Update(material)
+}
+
+// Logica para desactivar un material
+func (s *service) Deactivate(id uuid.UUID) error {
+
+	// buscamos el material por su id
+	material, err := s.repo.FindByID(id)
+	if err != nil {
+		return err
+	}
+
+	// si el material no esta activo devolvemos nulo
+	if !material.IsActive {
+		return nil
+	}
+
+	// si esta activo lo cambiamo
+	material.IsActive = false
+	_, err = s.repo.Update(material)
+	return err
 }
