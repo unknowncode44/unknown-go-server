@@ -11,7 +11,7 @@ import (
 type Service interface {
 	Create(material *entities.Material) (*entities.Material, error)
 	FindAll() ([]entities.Material, error)
-	// FindByID(id uuid.UUID) (*entities.Material, error)
+	FindByID(id uuid.UUID) (*entities.Material, error)
 	Update(material *entities.Material) (*entities.Material, error)
 	// Deactivate(id uuid.UUID) error
 }
@@ -47,6 +47,11 @@ func (s *service) Create(material *entities.Material) (*entities.Material, error
 // Logica para obtener todos los materiales
 func (s *service) FindAll() ([]entities.Material, error) {
 	return s.repo.FindAll()
+}
+
+// Logica para obtener un material por ID
+func (s *service) FindByID(id uuid.UUID) (*entities.Material, error) {
+	return s.repo.FindByID(id)
 }
 
 // Logica para actualizar un material
