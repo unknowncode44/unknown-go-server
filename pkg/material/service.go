@@ -3,7 +3,7 @@ package material
 import (
 	"errors"
 
-	// "github.com/google/uuid"
+	"github.com/google/uuid"
 	"github.com/unknowncode44/unknown-go-server/pkg/entities"
 )
 
@@ -12,7 +12,7 @@ type Service interface {
 	Create(material *entities.Material) (*entities.Material, error)
 	FindAll() ([]entities.Material, error)
 	// FindByID(id uuid.UUID) (*entities.Material, error)
-	// Update(material *entities.Material) (*entities.Material, error)
+	Update(material *entities.Material) (*entities.Material, error)
 	// Deactivate(id uuid.UUID) error
 }
 
@@ -47,4 +47,14 @@ func (s *service) Create(material *entities.Material) (*entities.Material, error
 // Logica para obtener todos los materiales
 func (s *service) FindAll() ([]entities.Material, error) {
 	return s.repo.FindAll()
+}
+
+// Logica para actualizar un material
+func (s *service) Update(material *entities.Material) (*entities.Material, error) {
+
+	// validaciones se aplica en el servicio y no el handler
+	if material.ID == uuid.Nil {
+		return nil, errors.New("La id del material es requerida")
+	}
+	return s.repo.Update(material)
 }
