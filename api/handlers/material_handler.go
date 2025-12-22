@@ -54,6 +54,21 @@ func (h *MaterialHandler) Create(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusCreated).JSON(toMaterialResponse(created))
 }
 
+// Listar todos los materiales (GET)
+func (h *MaterialHandler) GetAll(c *fiber.Ctx) error {
+	materials, err := h.service.FindAll()
+	if err != nil {
+		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+	}
+
+	var response []presenter.MaterialResponse
+	for _, m := range materials {
+		response = append(response, toMaterialResponse(&m))
+	}
+
+	return c.JSON(response)
+}
+
 // funcion auxiliar que nos ayudara a transformar nuestro entidad en una response que
 // cumpla con la structura del DTO MaterialResponse
 func toMaterialResponse(m *entities.Material) presenter.MaterialResponse {
