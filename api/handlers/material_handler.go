@@ -87,6 +87,55 @@ func (h *MaterialHandler) GetById(c *fiber.Ctx) error {
 	return c.JSON(toMaterialResponse(materialEntity))
 }
 
+// Actualizar material (PUT)
+func (h *MaterialHandler) Update(c *fiber.Ctx) error {
+	idParam := c.Params("id")
+	id, err := uuid.Parse(idParam)
+
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "ID de material invalido")
+	}
+
+	var req presenter.UpdateMaterialRequest
+	if err := c.BodyParser(&req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "Cuerpo de la peticion invalido")
+	}
+
+	materialEntity, err := h.service.FindByID(id)
+	if err != nil {
+		return fiber.NewError(fiber.StatusNotFound, "No se encontró el material")
+	}
+
+	// Aplicamos cambios
+	materialEntity.Name = req.Name
+	materialEntity.Sector = req.Sector
+	materialEntity.UnitOfMeasure = req.UnitOfMeasure
+	materialEntity.IsActive = req.IsActive
+
+	updated, err := h.service.Update(materialEntity)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+	}
+
+	return c.JSON(toMaterialResponse(updated))
+}
+
+// Desactivar material (DELETE logico)
+func (h *MaterialHandler) Deactivate(c *fiber.Ctx) error {
+	idParam := c.Params("id")
+
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "ID de material invalido")
+	}
+
+	if err := h.service.Deactivate(id); err != nil {
+		return fiber.NewError(fiber.StatusNotFound, "No se encontró el material")
+	}
+
+	return c.SendStatus(fiber.StatusNoContent)
+}
+
 // funcion auxiliar que nos ayudara a transformar nuestro entidad en una response que
 // cumpla con la structura del DTO MaterialResponse
 func toMaterialResponse(m *entities.Material) presenter.MaterialResponse {

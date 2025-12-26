@@ -11,4 +11,6 @@ func MaterialRoutes(router fiber.Router, handler *handlers.MaterialHandler) {
 	materials.Post("/", handler.Create)
 	materials.Get("/", handler.GetAll)
 	materials.Get("/:id", handler.GetById)
+	materials.Put("/:id", handler.Update)
+	materials.Delete("/:id", handler.Deactivate)
 }
