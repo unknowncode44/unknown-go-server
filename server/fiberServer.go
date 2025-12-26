@@ -6,10 +6,12 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/unknowncode44/unknown-go-server/api/handlers"
 	"github.com/unknowncode44/unknown-go-server/api/routes"
 	"github.com/unknowncode44/unknown-go-server/config"
 	database "github.com/unknowncode44/unknown-go-server/db"
 	"github.com/unknowncode44/unknown-go-server/pkg/company"
+	"github.com/unknowncode44/unknown-go-server/pkg/material"
 )
 
 // la estructura fiberServer la utilizaremos para el servidor, la db y la configuracion
@@ -34,13 +36,21 @@ func NewFiberServer(conf *config.Config, db database.Database) Server {
 	})
 
 	// repos & services
+
+	// Company
 	companyRepo := company.NewRepo(db.GetDb())
 	companyService := company.NewService(companyRepo)
+
+	// Material
+	materialRepo := material.NewRepo(db.GetDb())
+	materialService := material.NewService(materialRepo)
+	materialHandler := handlers.NewMaterialHandler(materialService)
 
 	// global api route
 	api := fiberApp.Group("/api/v1")
 
 	routes.CompanyRouter(api, companyService)
+	routes.MaterialRoutes(api, materialHandler)
 
 	return &fiberServer{
 		app:  fiberApp,
