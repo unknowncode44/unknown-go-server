@@ -8,6 +8,7 @@ package handlers
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"github.com/google/uuid"
 	"github.com/unknowncode44/unknown-go-server/api/presenter"
 	"github.com/unknowncode44/unknown-go-server/pkg/entities"
 	"github.com/unknowncode44/unknown-go-server/pkg/material"
@@ -67,6 +68,23 @@ func (h *MaterialHandler) GetAll(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(response)
+}
+
+// Obtener material por id (GET /:id)
+func (h *MaterialHandler) GetById(c *fiber.Ctx) error {
+	idParam := c.Params("id")
+
+	id, err := uuid.Parse(idParam)
+	if err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, "ID de material es invalido")
+	}
+
+	materialEntity, err := h.service.FindByID(id)
+	if err != nil {
+		return fiber.NewError(fiber.StatusNotFound, "No se encontró el material")
+	}
+
+	return c.JSON(toMaterialResponse(materialEntity))
 }
 
 // funcion auxiliar que nos ayudara a transformar nuestro entidad en una response que
