@@ -1,10 +1,8 @@
 package handlers
 
-// Las responsabilidades del handler seran
-// # Validar el formato de la peticion / respuesta
-// # Convertir las DTO en Entity
-// # Llamar a la instancia de service
-// # Convertir Entity en Response
+// Package handlers contiene los controladores HTTP para los recursos de la API.
+// Cada handler se encarga de validar la petición, convertir DTOs a entidades,
+// invocar la capa de servicio y formatear la respuesta.
 
 import (
 	"github.com/gofiber/fiber/v2"
@@ -14,69 +12,71 @@ import (
 	"github.com/unknowncode44/unknown-go-server/pkg/material"
 )
 
+// MaterialHandler gestiona las operaciones HTTP relacionadas con materiales.
+// Contiene la dependencia a la capa de servicio para delegar la lógica de negocio.
 type MaterialHandler struct {
 	service material.Service
 }
 
+// NewMaterialHandler crea una nueva instancia de MaterialHandler con la dependencia inyectada.
 func NewMaterialHandler(service material.Service) *MaterialHandler {
 	return &MaterialHandler{service: service}
 }
 
-// Crear nuevo material (POST)
-
-// los handler usan el contexto de la consulta que nos llega, lo pasamos usando fiber.Ctx
+// Create procesa la solicitud POST para crear un nuevo material.
+// - Valida el body de la petición y los campos obligatorios.
+// - Convierte el DTO a entidad y delega la creación al servicio.
+// - Devuelve 201 con el material creado o 400/500 según corresponda.
 func (h *MaterialHandler) Create(c *fiber.Ctx) error {
-
-	// nuestra variable req (de Request) deberia cumplir con el struct CreateMaterialRequest de nuestro modulo presenter
 	var req presenter.CreateMaterialRequest
-
-	// trataremos de parsear el body de la solicitud y en caso de que no sea posible
-	// devolveremos un BadRequest
 	if err := c.BodyParser(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "Cuerpo de la consulta es invalido")
+		return fiber.NewError(fiber.StatusBadRequest, "Cuerpo de la petición inválido")
 	}
 
-	// en caso de que no exista error parseamos el DTO a una Entity
+	// Validación básica a nivel de handler (el servicio puede implementar validaciones adicionales)
+	if req.Name == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "El nombre del material es obligatorio")
+	}
+
 	materialEntity := &entities.Material{
 		Name:          req.Name,
 		Sector:        req.Sector,
 		UnitOfMeasure: req.UnitOfMeasure,
 	}
 
-	// llamamos a nuestra instancia de servicio y a su metodo Create para crear un nuevo material
 	created, err := h.service.Create(materialEntity)
-
-	// si hay algun error por ahora devolvemos un BadRequest
 	if err != nil {
+		// Devolvemos el error tal cual; la capa de servicio debe responsabilizarse de errores de negocio.
 		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 	}
 
-	// retornamos un status Created y devolvemos la respuesta en JSON usando nuestra funcion auxiliar
 	return c.Status(fiber.StatusCreated).JSON(toMaterialResponse(created))
 }
 
-// Listar todos los materiales (GET)
+// GetAll devuelve la lista completa de materiales (GET).
+// Prealoca el slice de respuesta para mejorar rendimiento en colecciones grandes.
 func (h *MaterialHandler) GetAll(c *fiber.Ctx) error {
 	materials, err := h.service.FindAll()
 	if err != nil {
 		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
 	}
 
-	var response []presenter.MaterialResponse
-	for _, m := range materials {
-		response = append(response, toMaterialResponse(&m))
+	response := make([]presenter.MaterialResponse, 0, len(materials))
+	for i := range materials {
+		// tomar la dirección del elemento en la slice evita capturar la variable de bucle
+		response = append(response, toMaterialResponse(&materials[i]))
 	}
 
 	return c.JSON(response)
 }
 
-// Obtener material por id (GET /:id)
+// GetById devuelve un material por su ID (GET /:id).
+// Valida que el ID tenga formato UUID y delega la búsqueda al servicio.
 func (h *MaterialHandler) GetById(c *fiber.Ctx) error {
 	idParam := c.Params("id")
-
 	id, err := uuid.Parse(idParam)
 	if err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "ID de material es invalido")
+		return fiber.NewError(fiber.StatusBadRequest, "ID de material inválido")
 	}
 
 	materialEntity, err := h.service.FindByID(id)
@@ -87,18 +87,18 @@ func (h *MaterialHandler) GetById(c *fiber.Ctx) error {
 	return c.JSON(toMaterialResponse(materialEntity))
 }
 
-// Actualizar material (PUT)
+// Update aplica cambios sobre un material existente (PUT /:id).
+// - Valida ID y body, busca la entidad y delega la actualización al servicio.
 func (h *MaterialHandler) Update(c *fiber.Ctx) error {
 	idParam := c.Params("id")
 	id, err := uuid.Parse(idParam)
-
 	if err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "ID de material invalido")
+		return fiber.NewError(fiber.StatusBadRequest, "ID de material inválido")
 	}
 
 	var req presenter.UpdateMaterialRequest
 	if err := c.BodyParser(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "Cuerpo de la peticion invalido")
+		return fiber.NewError(fiber.StatusBadRequest, "Cuerpo de la petición inválido")
 	}
 
 	materialEntity, err := h.service.FindByID(id)
@@ -106,7 +106,7 @@ func (h *MaterialHandler) Update(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusNotFound, "No se encontró el material")
 	}
 
-	// Aplicamos cambios
+	// Aplicar cambios permitidos desde el DTO
 	materialEntity.Name = req.Name
 	materialEntity.Sector = req.Sector
 	materialEntity.UnitOfMeasure = req.UnitOfMeasure
@@ -120,13 +120,13 @@ func (h *MaterialHandler) Update(c *fiber.Ctx) error {
 	return c.JSON(toMaterialResponse(updated))
 }
 
-// Desactivar material (DELETE logico)
+// Deactivate realiza el borrado lógico de un material (DELETE /:id).
+// Devuelve 204 cuando la operación es exitosa.
 func (h *MaterialHandler) Deactivate(c *fiber.Ctx) error {
 	idParam := c.Params("id")
-
 	id, err := uuid.Parse(idParam)
 	if err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "ID de material invalido")
+		return fiber.NewError(fiber.StatusBadRequest, "ID de material inválido")
 	}
 
 	if err := h.service.Deactivate(id); err != nil {
@@ -136,9 +136,13 @@ func (h *MaterialHandler) Deactivate(c *fiber.Ctx) error {
 	return c.SendStatus(fiber.StatusNoContent)
 }
 
-// funcion auxiliar que nos ayudara a transformar nuestro entidad en una response que
-// cumpla con la structura del DTO MaterialResponse
+// toMaterialResponse transforma una entidad Material en su DTO de respuesta.
+// Protege contra punteros nulos retornando un struct vacío si es necesario.
 func toMaterialResponse(m *entities.Material) presenter.MaterialResponse {
+	if m == nil {
+		return presenter.MaterialResponse{}
+	}
+
 	return presenter.MaterialResponse{
 		ID:            m.ID,
 		Name:          m.Name,
