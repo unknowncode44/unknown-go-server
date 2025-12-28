@@ -65,5 +65,7 @@ func (r *repository) Update(vendor *entities.Vendor) (*entities.Vendor, error) {
 
 // Delete elimina el registro identificado por el UUID.
 func (r *repository) Delete(id uuid.UUID) error {
-	return r.db.Delete(&entities.Vendor{}, "id = ?", id).Error
+	return r.db.Model(&entities.Vendor{}).
+		Where("id = ?", id).
+		Update("is_active", false).Error
 }
