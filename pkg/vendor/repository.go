@@ -28,7 +28,8 @@ func NewRepo(db *gorm.DB) Repository {
 
 // Create inserta un nuevo registro de vendor en la base de datos.
 func (r *repository) Create(vendor *entities.Vendor) (*entities.Vendor, error) {
-	if err := r.db.Create(vendor).Error; err != nil {
+	if err := r.db.
+		Create(vendor).Error; err != nil {
 		return nil, err
 	}
 	return vendor, nil
@@ -37,7 +38,8 @@ func (r *repository) Create(vendor *entities.Vendor) (*entities.Vendor, error) {
 // FindAll recupera todos los registros de vendor.
 func (r *repository) FindAll() ([]entities.Vendor, error) {
 	var vendors []entities.Vendor
-	if err := r.db.Find(&vendors).Error; err != nil {
+	if err := r.db.
+		Find(&vendors).Error; err != nil {
 		return nil, err
 	}
 
@@ -47,7 +49,8 @@ func (r *repository) FindAll() ([]entities.Vendor, error) {
 // FindByID busca un material por su UUID.
 func (r *repository) FindByID(id uuid.UUID) (*entities.Vendor, error) {
 	var vendor entities.Vendor
-	if err := r.db.First(&vendor, "id = ?", id).Error; err != nil {
+	if err := r.db.
+		First(&vendor, "id = ?", id).Error; err != nil {
 		return nil, err
 	}
 
@@ -56,7 +59,10 @@ func (r *repository) FindByID(id uuid.UUID) (*entities.Vendor, error) {
 
 // Update aplica los cambios de la entidad en la base y devuelve la entidad actualizada.
 func (r *repository) Update(vendor *entities.Vendor) (*entities.Vendor, error) {
-	if err := r.db.Model(vendor).Updates(vendor).Error; err != nil {
+	if err := r.db.
+		Model(&entities.Vendor{}).
+		Where("id = ?", vendor.ID).
+		Updates(vendor).Error; err != nil {
 		return nil, err
 	}
 
