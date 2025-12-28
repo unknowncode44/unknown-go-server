@@ -8,9 +8,10 @@ import (
 
 type Vendor struct {
 	ID        uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
-	Name      string    `gorm:"size:255;not null"`
-	Code      string    `gorm:"size:100;uniqueIndex;not null"`
-	IsActive  bool      `gorm:"default:true;not null"`
+	Name      string    `gorm:"type:varchar(255);not null"`
+	Code      string    `gorm:"type:varchar(100)"`
+	TaxID     string    `gorm:"type:varchar(50)"` // opcional
+	IsActive  bool      `gorm:"not null;default:true"`
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
