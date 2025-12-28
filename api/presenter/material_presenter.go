@@ -3,7 +3,7 @@ package presenter
 import (
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/unknowncode44/unknown-go-server/pkg/entities"
 )
 
 // CreateMaterialRequest representa el cuerpo esperado para crear un material.
@@ -25,11 +25,59 @@ type UpdateMaterialRequest struct {
 
 // MaterialResponse define la respuesta que devuelve la API para un material.
 type MaterialResponse struct {
-	ID            uuid.UUID `json:"id"`
+	ID            string    `json:"id"`
 	Name          string    `json:"name"`
 	Sector        string    `json:"sector"`
 	UnitOfMeasure string    `json:"unitOfMeasure"`
 	IsActive      bool      `json:"isActive"`
 	CreatedAt     time.Time `json:"createdAt"`
 	UpdatedAt     time.Time `json:"updatedAt"`
+}
+
+// MaterialSuccessResponse representa una respuesta exitosa con uno o más vendors.
+type MaterialSuccessResponse struct {
+	Success bool        `json:"ok"`
+	Data    interface{} `json:"data"`
+}
+
+// MaterialErrorResponse representa una respuesta de error estándar.
+type MaterialErrorResponse struct {
+	Success bool   `json:"ok"`
+	Error   string `json:"error"`
+}
+
+// ToMaterialResponse transforma una entidad Material en MaterialResponse.
+func ToMaterialResponse(m *entities.Material) MaterialResponse {
+	if m == nil {
+		return MaterialResponse{}
+	}
+
+	return MaterialResponse{
+		ID:            m.ID.String(),
+		Name:          m.Name,
+		Sector:        m.Sector,
+		UnitOfMeasure: m.UnitOfMeasure,
+		IsActive:      m.IsActive,
+		CreatedAt:     m.CreatedAt,
+		UpdatedAt:     m.UpdatedAt,
+	}
+}
+
+// ToMaterialListResponse transforma una lista de entidades Materials.
+func ToMaterialListResponse(vendors []entities.Material) []MaterialResponse {
+	response := make([]MaterialResponse, 0, len(vendors))
+
+	for _, m := range vendors {
+		response = append(response, MaterialResponse{
+			ID:            m.ID.String(),
+			Name:          m.Name,
+			Sector:        m.Sector,
+			UnitOfMeasure: m.UnitOfMeasure,
+			IsActive:      m.IsActive,
+			CreatedAt:     m.CreatedAt,
+			UpdatedAt:     m.UpdatedAt,
+		})
+	}
+
+	return response
 }

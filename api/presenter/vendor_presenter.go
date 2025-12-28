@@ -32,12 +32,14 @@ type VendorResponse struct {
 
 // VendorSuccessResponse representa una respuesta exitosa con uno o más vendors.
 type VendorSuccessResponse struct {
-	Data interface{} `json:"data"`
+	Success bool        `json:"ok"`
+	Data    interface{} `json:"data"`
 }
 
 // VendorErrorResponse representa una respuesta de error estándar.
 type VendorErrorResponse struct {
-	Error string `json:"error"`
+	Success bool   `json:"ok"`
+	Error   string `json:"error"`
 }
 
 // ToVendorResponse transforma una entidad Vendor en VendorResponse.

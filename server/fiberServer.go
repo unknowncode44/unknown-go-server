@@ -32,7 +32,7 @@ func NewFiberServer(conf *config.Config, db database.Database) Server {
 	// configuramos el servidor para que acepte peticiones de cualquier origen
 	fiberApp.Use(cors.New())
 
-	fiberApp.Get("/api/health/v1", func(ctx *fiber.Ctx) error {
+	fiberApp.Get("/api/v1/health", func(ctx *fiber.Ctx) error {
 		return ctx.Send([]byte("Working Cool!"))
 	})
 

@@ -30,12 +30,14 @@ func NewMaterialHandler(service material.Service) *MaterialHandler {
 func (h *MaterialHandler) Create(c *fiber.Ctx) error {
 	var req presenter.CreateMaterialRequest
 	if err := c.BodyParser(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "Cuerpo de la petición inválido")
+		return c.Status(fiber.StatusBadRequest).
+			JSON(presenter.MaterialErrorResponse{Success: false, Error: "Invalid request body"})
 	}
 
 	// Validación básica a nivel de handler (el servicio puede implementar validaciones adicionales)
 	if req.Name == "" {
-		return fiber.NewError(fiber.StatusBadRequest, "El nombre del material es obligatorio")
+		return c.Status(fiber.StatusBadRequest).
+			JSON(presenter.MaterialErrorResponse{Success: false, Error: "Invalid request body"})
 	}
 
 	materialEntity := &entities.Material{
@@ -47,10 +49,14 @@ func (h *MaterialHandler) Create(c *fiber.Ctx) error {
 	created, err := h.service.Create(materialEntity)
 	if err != nil {
 		// Devolvemos el error tal cual; la capa de servicio debe responsabilizarse de errores de negocio.
-		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		return c.Status(fiber.StatusBadRequest).
+			JSON(presenter.MaterialErrorResponse{Success: false, Error: err.Error()})
 	}
 
-	return c.Status(fiber.StatusCreated).JSON(toMaterialResponse(created))
+	return c.Status(fiber.StatusCreated).JSON(presenter.MaterialSuccessResponse{
+		Success: true,
+		Data:    presenter.ToMaterialResponse(created),
+	})
 }
 
 // GetAll devuelve la lista completa de materiales (GET).
@@ -58,16 +64,14 @@ func (h *MaterialHandler) Create(c *fiber.Ctx) error {
 func (h *MaterialHandler) GetAll(c *fiber.Ctx) error {
 	materials, err := h.service.FindAll()
 	if err != nil {
-		return fiber.NewError(fiber.StatusInternalServerError, err.Error())
+		return c.Status(fiber.StatusBadRequest).
+			JSON(presenter.MaterialErrorResponse{Success: false, Error: err.Error()})
 	}
 
-	response := make([]presenter.MaterialResponse, 0, len(materials))
-	for i := range materials {
-		// tomar la dirección del elemento en la slice evita capturar la variable de bucle
-		response = append(response, toMaterialResponse(&materials[i]))
-	}
-
-	return c.JSON(response)
+	return c.JSON(presenter.MaterialSuccessResponse{
+		Success: true,
+		Data:    presenter.ToMaterialListResponse(materials),
+	})
 }
 
 // GetById devuelve un material por su ID (GET /:id).
@@ -76,15 +80,20 @@ func (h *MaterialHandler) GetById(c *fiber.Ctx) error {
 	idParam := c.Params("id")
 	id, err := uuid.Parse(idParam)
 	if err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "ID de material inválido")
+		return c.Status(fiber.StatusBadRequest).
+			JSON(presenter.MaterialErrorResponse{Success: false, Error: "Invalid material ID"})
 	}
 
 	materialEntity, err := h.service.FindByID(id)
 	if err != nil {
-		return fiber.NewError(fiber.StatusNotFound, "No se encontró el material")
+		return c.Status(fiber.StatusBadRequest).
+			JSON(presenter.MaterialErrorResponse{Success: false, Error: err.Error()})
 	}
 
-	return c.JSON(toMaterialResponse(materialEntity))
+	return c.JSON(presenter.MaterialSuccessResponse{
+		Success: true,
+		Data:    presenter.ToMaterialResponse(materialEntity),
+	})
 }
 
 // Update aplica cambios sobre un material existente (PUT /:id).
@@ -93,17 +102,20 @@ func (h *MaterialHandler) Update(c *fiber.Ctx) error {
 	idParam := c.Params("id")
 	id, err := uuid.Parse(idParam)
 	if err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "ID de material inválido")
+		return c.Status(fiber.StatusBadRequest).
+			JSON(presenter.MaterialErrorResponse{Success: false, Error: "Invalid material ID"})
 	}
 
 	var req presenter.UpdateMaterialRequest
 	if err := c.BodyParser(&req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "Cuerpo de la petición inválido")
+		return c.Status(fiber.StatusBadRequest).
+			JSON(presenter.MaterialErrorResponse{Success: false, Error: "Invalid request body"})
 	}
 
 	materialEntity, err := h.service.FindByID(id)
 	if err != nil {
-		return fiber.NewError(fiber.StatusNotFound, "No se encontró el material")
+		return c.Status(fiber.StatusNotFound).
+			JSON(presenter.MaterialErrorResponse{Success: false, Error: "Material No Encontrado"})
 	}
 
 	// Aplicar cambios permitidos desde el DTO
@@ -114,10 +126,14 @@ func (h *MaterialHandler) Update(c *fiber.Ctx) error {
 
 	updated, err := h.service.Update(materialEntity)
 	if err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+		return c.Status(fiber.StatusNotFound).
+			JSON(presenter.MaterialErrorResponse{Success: false, Error: err.Error()})
 	}
 
-	return c.JSON(toMaterialResponse(updated))
+	return c.JSON(presenter.MaterialSuccessResponse{
+		Success: true,
+		Data:    presenter.ToMaterialResponse(updated),
+	})
 }
 
 // Deactivate realiza el borrado lógico de un material (DELETE /:id).
@@ -126,30 +142,14 @@ func (h *MaterialHandler) Deactivate(c *fiber.Ctx) error {
 	idParam := c.Params("id")
 	id, err := uuid.Parse(idParam)
 	if err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, "ID de material inválido")
+		return c.Status(fiber.StatusNotFound).
+			JSON(presenter.MaterialErrorResponse{Success: false, Error: "ID de Material invalido"})
 	}
 
 	if err := h.service.Deactivate(id); err != nil {
-		return fiber.NewError(fiber.StatusNotFound, "No se encontró el material")
+		return c.Status(fiber.StatusNotFound).
+			JSON(presenter.MaterialErrorResponse{Success: false, Error: "Material No Encontrado"})
 	}
 
 	return c.SendStatus(fiber.StatusNoContent)
-}
-
-// toMaterialResponse transforma una entidad Material en su DTO de respuesta.
-// Protege contra punteros nulos retornando un struct vacío si es necesario.
-func toMaterialResponse(m *entities.Material) presenter.MaterialResponse {
-	if m == nil {
-		return presenter.MaterialResponse{}
-	}
-
-	return presenter.MaterialResponse{
-		ID:            m.ID,
-		Name:          m.Name,
-		Sector:        m.Sector,
-		UnitOfMeasure: m.UnitOfMeasure,
-		IsActive:      m.IsActive,
-		CreatedAt:     m.CreatedAt,
-		UpdatedAt:     m.UpdatedAt,
-	}
 }
