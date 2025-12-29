@@ -64,8 +64,13 @@ func (s *service) FindByID(id uuid.UUID) (*entities.Material, error) {
 
 // Update valida la entidad y delega la actualización al repositorio.
 func (s *service) Update(material *entities.Material) (*entities.Material, error) {
+
+	// Validaciones basicas y Trim
 	if material == nil || material.ID == uuid.Nil {
 		return nil, errors.New("La id del material es requerida")
+	}
+	if strings.TrimSpace(material.Name) == "" {
+		return nil, errors.New("Nombre del material es requerido")
 	}
 	return s.repo.Update(material)
 }
@@ -76,10 +81,12 @@ func (s *service) Deactivate(id uuid.UUID) error {
 	if err != nil {
 		return err
 	}
+
 	if !m.IsActive {
 		// Ya estaba desactivado, consideramos la operación idempotente
 		return nil
 	}
+
 	m.IsActive = false
 	_, err = s.repo.Update(m)
 	return err

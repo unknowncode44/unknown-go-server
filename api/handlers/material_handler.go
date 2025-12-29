@@ -77,14 +77,13 @@ func (h *MaterialHandler) GetAll(c *fiber.Ctx) error {
 // GetById devuelve un material por su ID (GET /:id).
 // Valida que el ID tenga formato UUID y delega la búsqueda al servicio.
 func (h *MaterialHandler) GetById(c *fiber.Ctx) error {
-	idParam := c.Params("id")
-	id, err := uuid.Parse(idParam)
+	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).
 			JSON(presenter.MaterialErrorResponse{Success: false, Error: "Invalid material ID"})
 	}
 
-	materialEntity, err := h.service.FindByID(id)
+	m, err := h.service.FindByID(id)
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).
 			JSON(presenter.MaterialErrorResponse{Success: false, Error: err.Error()})
@@ -92,39 +91,28 @@ func (h *MaterialHandler) GetById(c *fiber.Ctx) error {
 
 	return c.JSON(presenter.MaterialSuccessResponse{
 		Success: true,
-		Data:    presenter.ToMaterialResponse(materialEntity),
+		Data:    presenter.ToMaterialResponse(m),
 	})
 }
 
 // Update aplica cambios sobre un material existente (PUT /:id).
 // - Valida ID y body, busca la entidad y delega la actualización al servicio.
 func (h *MaterialHandler) Update(c *fiber.Ctx) error {
-	idParam := c.Params("id")
-	id, err := uuid.Parse(idParam)
+	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
 		return c.Status(fiber.StatusBadRequest).
 			JSON(presenter.MaterialErrorResponse{Success: false, Error: "Invalid material ID"})
 	}
 
-	var req presenter.UpdateMaterialRequest
-	if err := c.BodyParser(&req); err != nil {
+	var m entities.Material
+	if err := c.BodyParser(&m); err != nil {
 		return c.Status(fiber.StatusBadRequest).
 			JSON(presenter.MaterialErrorResponse{Success: false, Error: "Invalid request body"})
 	}
 
-	materialEntity, err := h.service.FindByID(id)
-	if err != nil {
-		return c.Status(fiber.StatusNotFound).
-			JSON(presenter.MaterialErrorResponse{Success: false, Error: "Material No Encontrado"})
-	}
+	m.ID = id
 
-	// Aplicar cambios permitidos desde el DTO
-	materialEntity.Name = req.Name
-	materialEntity.Sector = req.Sector
-	materialEntity.UnitOfMeasure = req.UnitOfMeasure
-	materialEntity.IsActive = req.IsActive
-
-	updated, err := h.service.Update(materialEntity)
+	updated, err := h.service.Update(&m)
 	if err != nil {
 		return c.Status(fiber.StatusNotFound).
 			JSON(presenter.MaterialErrorResponse{Success: false, Error: err.Error()})

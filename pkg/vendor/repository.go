@@ -58,11 +58,17 @@ func (r *repository) FindByID(id uuid.UUID) (*entities.Vendor, error) {
 }
 
 // Update aplica los cambios de la entidad en la base y devuelve la entidad actualizada.
+// Utiliza un mapa para asegurar que los valores falsos (como IsActive=false) se persistan correctamente.
 func (r *repository) Update(vendor *entities.Vendor) (*entities.Vendor, error) {
 	if err := r.db.
 		Model(&entities.Vendor{}).
 		Where("id = ?", vendor.ID).
-		Updates(vendor).Error; err != nil {
+		Updates(map[string]interface{}{
+			"name":      vendor.Name,
+			"code":      vendor.Code,
+			"tax_id":    vendor.TaxID,
+			"is_active": vendor.IsActive,
+		}).Error; err != nil {
 		return nil, err
 	}
 
