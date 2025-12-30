@@ -30,14 +30,12 @@ func NewMaterialHandler(service material.Service) *MaterialHandler {
 func (h *MaterialHandler) Create(c *fiber.Ctx) error {
 	var req presenter.CreateMaterialRequest
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).
-			JSON(presenter.MaterialErrorResponse{Success: false, Error: "Invalid request body"})
+		return respondError(c, fiber.StatusBadRequest, "Invalid request body")
 	}
 
 	// Validación básica a nivel de handler (el servicio puede implementar validaciones adicionales)
 	if req.Name == "" {
-		return c.Status(fiber.StatusBadRequest).
-			JSON(presenter.MaterialErrorResponse{Success: false, Error: "Invalid request body"})
+		return respondError(c, fiber.StatusBadRequest, "Invalid request body")
 	}
 
 	materialEntity := &entities.Material{
@@ -49,8 +47,7 @@ func (h *MaterialHandler) Create(c *fiber.Ctx) error {
 	created, err := h.service.Create(materialEntity)
 	if err != nil {
 		// Devolvemos el error tal cual; la capa de servicio debe responsabilizarse de errores de negocio.
-		return c.Status(fiber.StatusBadRequest).
-			JSON(presenter.MaterialErrorResponse{Success: false, Error: err.Error()})
+		return respondError(c, fiber.StatusBadRequest, err.Error())
 	}
 
 	return c.Status(fiber.StatusCreated).JSON(presenter.MaterialSuccessResponse{
@@ -64,8 +61,7 @@ func (h *MaterialHandler) Create(c *fiber.Ctx) error {
 func (h *MaterialHandler) GetAll(c *fiber.Ctx) error {
 	materials, err := h.service.FindAll()
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).
-			JSON(presenter.MaterialErrorResponse{Success: false, Error: err.Error()})
+		return respondError(c, fiber.StatusInternalServerError, err.Error())
 	}
 
 	return c.JSON(presenter.MaterialSuccessResponse{
@@ -79,14 +75,12 @@ func (h *MaterialHandler) GetAll(c *fiber.Ctx) error {
 func (h *MaterialHandler) GetById(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).
-			JSON(presenter.MaterialErrorResponse{Success: false, Error: "Invalid material ID"})
+		return respondError(c, fiber.StatusBadRequest, "Invalid material ID")
 	}
 
 	m, err := h.service.FindByID(id)
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).
-			JSON(presenter.MaterialErrorResponse{Success: false, Error: err.Error()})
+		return respondError(c, fiber.StatusNotFound, err.Error())
 	}
 
 	return c.JSON(presenter.MaterialSuccessResponse{
@@ -100,22 +94,39 @@ func (h *MaterialHandler) GetById(c *fiber.Ctx) error {
 func (h *MaterialHandler) Update(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).
-			JSON(presenter.MaterialErrorResponse{Success: false, Error: "Invalid material ID"})
+		return respondError(c, fiber.StatusBadRequest, "Invalid material ID")
 	}
 
-	var m entities.Material
-	if err := c.BodyParser(&m); err != nil {
-		return c.Status(fiber.StatusBadRequest).
-			JSON(presenter.MaterialErrorResponse{Success: false, Error: "Invalid request body"})
+	var req presenter.UpdateMaterialRequest
+	if err := c.BodyParser(&req); err != nil {
+		return respondError(c, fiber.StatusBadRequest, "Invalid request body")
 	}
 
-	m.ID = id
+	// require at least one field to update
+	if req.Name == "" && req.Sector == "" && req.UnitOfMeasure == "" {
+		return respondError(c, fiber.StatusBadRequest, "No fields provided for update")
+	}
 
-	updated, err := h.service.Update(&m)
+	mat, err := h.service.FindByID(id)
 	if err != nil {
-		return c.Status(fiber.StatusNotFound).
-			JSON(presenter.MaterialErrorResponse{Success: false, Error: err.Error()})
+		return respondError(c, fiber.StatusNotFound, "Material with id provided was not found")
+	}
+
+	if req.Name != "" {
+		mat.Name = req.Name
+	}
+
+	if req.Sector != "" {
+		mat.Sector = req.Sector
+	}
+
+	if req.UnitOfMeasure != "" {
+		mat.UnitOfMeasure = req.UnitOfMeasure
+	}
+
+	updated, err := h.service.Update(mat)
+	if err != nil {
+		return respondError(c, fiber.StatusInternalServerError, "Material was not updated due to an internal server error")
 	}
 
 	return c.JSON(presenter.MaterialSuccessResponse{
@@ -130,13 +141,11 @@ func (h *MaterialHandler) Deactivate(c *fiber.Ctx) error {
 	idParam := c.Params("id")
 	id, err := uuid.Parse(idParam)
 	if err != nil {
-		return c.Status(fiber.StatusNotFound).
-			JSON(presenter.MaterialErrorResponse{Success: false, Error: "ID de Material invalido"})
+		return respondError(c, fiber.StatusBadRequest, "Invalid Material ID")
 	}
 
 	if err := h.service.Deactivate(id); err != nil {
-		return c.Status(fiber.StatusNotFound).
-			JSON(presenter.MaterialErrorResponse{Success: false, Error: "Material No Encontrado"})
+		return respondError(c, fiber.StatusNotFound, "Material not found")
 	}
 
 	return c.SendStatus(fiber.StatusNoContent)
