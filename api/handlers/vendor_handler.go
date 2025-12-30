@@ -21,8 +21,7 @@ func (h *VendorHandler) Create(c *fiber.Ctx) error {
 	var req presenter.CreateVendorRequest
 
 	if err := c.BodyParser(&req); err != nil {
-		return c.Status(fiber.StatusBadRequest).
-			JSON(presenter.VendorErrorResponse{Success: false, Error: "Invalid request body"})
+		return respondError(c, fiber.StatusBadRequest, "Invalid request body")
 	}
 
 	vendorEntity := &entities.Vendor{
@@ -33,8 +32,7 @@ func (h *VendorHandler) Create(c *fiber.Ctx) error {
 
 	created, err := h.service.Create(vendorEntity)
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).
-			JSON(presenter.VendorErrorResponse{Success: false, Error: err.Error()})
+		return respondError(c, fiber.StatusBadRequest, err.Error())
 	}
 
 	return c.Status(fiber.StatusCreated).
@@ -48,8 +46,7 @@ func (h *VendorHandler) Create(c *fiber.Ctx) error {
 func (h *VendorHandler) FindAll(c *fiber.Ctx) error {
 	vendors, err := h.service.FindAll()
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).
-			JSON(presenter.VendorErrorResponse{Success: false, Error: err.Error()})
+		return respondError(c, fiber.StatusInternalServerError, err.Error())
 	}
 
 	return c.JSON(presenter.VendorSuccessResponse{
@@ -62,14 +59,12 @@ func (h *VendorHandler) FindAll(c *fiber.Ctx) error {
 func (h *VendorHandler) FindByID(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).
-			JSON(presenter.VendorErrorResponse{Success: false, Error: "Invalid vendor ID"})
+		return respondError(c, fiber.StatusBadRequest, "Invalid vendor ID")
 	}
 
 	v, err := h.service.FindByID(id)
 	if err != nil {
-		return c.Status(fiber.StatusNotFound).
-			JSON(presenter.VendorErrorResponse{Success: false, Error: err.Error()})
+		return respondError(c, fiber.StatusNotFound, err.Error())
 	}
 
 	return c.JSON(presenter.VendorSuccessResponse{
@@ -82,22 +77,42 @@ func (h *VendorHandler) FindByID(c *fiber.Ctx) error {
 func (h *VendorHandler) Update(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).
-			JSON(presenter.VendorErrorResponse{Success: false, Error: "Invalid vendor ID"})
+		return respondError(c, fiber.StatusBadRequest, "Invalid vendor ID")
 	}
 
-	var v entities.Vendor
-	if err := c.BodyParser(&v); err != nil {
-		return c.Status(fiber.StatusBadRequest).
-			JSON(presenter.VendorErrorResponse{Success: false, Error: "Invalid request body"})
+	var req presenter.UpdateVendorRequest
+	if err := c.BodyParser(&req); err != nil {
+		return respondError(c, fiber.StatusBadRequest, "Invalid request body")
 	}
 
-	v.ID = id
+	// require name on create/update as per higher-level requirement
+	if req.Name == "" {
+		return respondError(c, fiber.StatusBadRequest, "name is required")
+	}
 
-	updated, err := h.service.Update(&v)
+	// require at least one field to update
+	if req.Name == "" && req.Code == "" && req.TaxID == "" {
+		return respondError(c, fiber.StatusBadRequest, "No fields provided for update")
+	}
+
+	vend, err := h.service.FindByID(id)
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).
-			JSON(presenter.VendorErrorResponse{Success: false, Error: err.Error()})
+		return respondError(c, fiber.StatusNotFound, "Vendor with ID provided was not found")
+	}
+
+	if req.Name != "" {
+		vend.Name = req.Name
+	}
+	if req.Code != "" {
+		vend.Code = req.Code
+	}
+	if req.TaxID != "" {
+		vend.TaxID = req.TaxID
+	}
+
+	updated, err := h.service.Update(vend)
+	if err != nil {
+		return respondError(c, fiber.StatusInternalServerError, "Vendor was not updated due to an internal server error")
 	}
 
 	return c.JSON(presenter.VendorSuccessResponse{
@@ -110,13 +125,11 @@ func (h *VendorHandler) Update(c *fiber.Ctx) error {
 func (h *VendorHandler) Deactivate(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
-		return c.Status(fiber.StatusBadRequest).
-			JSON(presenter.VendorErrorResponse{Success: false, Error: "Invalid vendor ID"})
+		return respondError(c, fiber.StatusBadRequest, "Invalid vendor ID")
 	}
 
 	if err := h.service.Deactivate(id); err != nil {
-		return c.Status(fiber.StatusNotFound).
-			JSON(presenter.VendorErrorResponse{Success: false, Error: err.Error()})
+		return respondError(c, fiber.StatusNotFound, err.Error())
 	}
 
 	return c.SendStatus(fiber.StatusNoContent)

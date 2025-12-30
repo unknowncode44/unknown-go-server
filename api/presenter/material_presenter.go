@@ -20,7 +20,6 @@ type UpdateMaterialRequest struct {
 	Name          string `json:"name"`
 	Sector        string `json:"sector"`
 	UnitOfMeasure string `json:"unitOfMeasure"`
-	IsActive      bool   `json:"isActive"`
 }
 
 // MaterialResponse define la respuesta que devuelve la API para un material.
