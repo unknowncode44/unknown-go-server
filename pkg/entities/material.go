@@ -6,8 +6,11 @@ import (
 	"github.com/google/uuid"
 )
 
-// Material representa el recurso de materiales en la aplicación.
-// Contiene metadatos usados por GORM para persistencia.
+// Material represents a material resource used by the application.
+//
+// The struct includes persistence metadata for the ORM (GORM) and
+// basic lifecycle fields. Field constraints (size, not-null, defaults)
+// are defined via GORM struct tags.
 type Material struct {
 	ID            uuid.UUID `gorm:"type:uuid;default:uuid_generate_v4();primaryKey"`
 	Name          string    `gorm:"size:255;not null"`

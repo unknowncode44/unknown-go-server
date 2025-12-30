@@ -12,6 +12,7 @@ import (
 	database "github.com/unknowncode44/unknown-go-server/db"
 	"github.com/unknowncode44/unknown-go-server/pkg/company"
 	"github.com/unknowncode44/unknown-go-server/pkg/material"
+	"github.com/unknowncode44/unknown-go-server/pkg/vendor"
 )
 
 // la estructura fiberServer la utilizaremos para el servidor, la db y la configuracion
@@ -31,7 +32,7 @@ func NewFiberServer(conf *config.Config, db database.Database) Server {
 	// configuramos el servidor para que acepte peticiones de cualquier origen
 	fiberApp.Use(cors.New())
 
-	fiberApp.Get("/api/health/v1", func(ctx *fiber.Ctx) error {
+	fiberApp.Get("/api/v1/health", func(ctx *fiber.Ctx) error {
 		return ctx.Send([]byte("Working Cool!"))
 	})
 
@@ -46,11 +47,17 @@ func NewFiberServer(conf *config.Config, db database.Database) Server {
 	materialService := material.NewService(materialRepo)
 	materialHandler := handlers.NewMaterialHandler(materialService)
 
+	// Vendor
+	vendorRepo := vendor.NewRepo(db.GetDb())
+	vendorService := vendor.NewService(vendorRepo)
+	vendorHandler := handlers.NewVendorHandler(vendorService)
+
 	// global api route
 	api := fiberApp.Group("/api/v1")
 
 	routes.CompanyRouter(api, companyService)
 	routes.MaterialRoutes(api, materialHandler)
+	routes.VendorRoutes(api, vendorHandler)
 
 	return &fiberServer{
 		app:  fiberApp,

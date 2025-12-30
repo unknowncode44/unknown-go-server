@@ -28,7 +28,8 @@ func NewRepo(db *gorm.DB) Repository {
 
 // Create inserta un nuevo registro de material en la base de datos.
 func (r *repository) Create(material *entities.Material) (*entities.Material, error) {
-	if err := r.db.Create(material).Error; err != nil {
+	if err := r.db.
+		Create(material).Error; err != nil {
 		return nil, err
 	}
 	return material, nil
@@ -37,7 +38,8 @@ func (r *repository) Create(material *entities.Material) (*entities.Material, er
 // FindAll recupera todos los registros de materiales.
 func (r *repository) FindAll() ([]entities.Material, error) {
 	var materials []entities.Material
-	if err := r.db.Find(&materials).Error; err != nil {
+	if err := r.db.
+		Find(&materials).Error; err != nil {
 		return nil, err
 	}
 	return materials, nil
@@ -46,15 +48,25 @@ func (r *repository) FindAll() ([]entities.Material, error) {
 // FindByID busca un material por su UUID.
 func (r *repository) FindByID(id uuid.UUID) (*entities.Material, error) {
 	var material entities.Material
-	if err := r.db.First(&material, "id = ?", id).Error; err != nil {
+	if err := r.db.
+		First(&material, "id = ?", id).Error; err != nil {
 		return nil, err
 	}
 	return &material, nil
 }
 
 // Update aplica los cambios de la entidad en la base y devuelve la entidad actualizada.
+// Utiliza un mapa para asegurar que los valores falsos (como IsActive=false) se persistan correctamente.
 func (r *repository) Update(material *entities.Material) (*entities.Material, error) {
-	if err := r.db.Model(material).Updates(material).Error; err != nil {
+	if err := r.db.
+		Model(&entities.Material{}).
+		Where("id = ?", material.ID).
+		Updates(map[string]interface{}{
+			"name":            material.Name,
+			"sector":          material.Sector,
+			"unit_of_measure": material.UnitOfMeasure,
+			"is_active":       material.IsActive,
+		}).Error; err != nil {
 		return nil, err
 	}
 	return material, nil
@@ -62,5 +74,7 @@ func (r *repository) Update(material *entities.Material) (*entities.Material, er
 
 // Delete elimina el registro identificado por el UUID.
 func (r *repository) Delete(id uuid.UUID) error {
-	return r.db.Delete(&entities.Material{}, "id = ?", id).Error
+	return r.db.Model(&entities.Material{}).
+		Where("id = ?", id).
+		Update("is_active", false).Error
 }
