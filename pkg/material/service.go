@@ -8,8 +8,10 @@ import (
 	"github.com/unknowncode44/unknown-go-server/pkg/entities"
 )
 
-// Service define la API del módulo material. Permite a los handlers usar
-// la lógica de negocio sin depender de detalles de persistencia.
+// Package material provides domain interfaces and implementations for
+// material entities used by the application.
+
+// Service defines the business API for material operations.
 type Service interface {
 	Create(material *entities.Material) (*entities.Material, error)
 	FindAll() ([]entities.Material, error)
@@ -18,75 +20,68 @@ type Service interface {
 	Deactivate(id uuid.UUID) error
 }
 
-// service es la implementación por defecto de Service.
+// service is the default Service implementation.
 type service struct {
 	repo Repository
 }
 
-// NewService crea una nueva instancia de Service con el repositorio inyectado.
+// NewService returns a new Service using the provided Repository.
 func NewService(repo Repository) Service {
 	return &service{repo: repo}
 }
 
-// Create aplica las validaciones de negocio y delega la persistencia al repositorio.
-// Valida que los campos obligatorios no estén vacíos (trimmed).
+// Create validates business rules and delegates persistence to the repository.
+// Required fields are trimmed and must be non-empty.
 func (s *service) Create(material *entities.Material) (*entities.Material, error) {
 	if material == nil {
-		return nil, errors.New("material es requerido")
+		return nil, errors.New("material is required")
 	}
 
-	// Trim y validaciones básicas
 	if strings.TrimSpace(material.Name) == "" {
-		return nil, errors.New("Nombre del material es requerido")
+		return nil, errors.New("material name is required")
 	}
 	if strings.TrimSpace(material.Sector) == "" {
-		return nil, errors.New("Rubro del material es requerido")
+		return nil, errors.New("material sector is required")
 	}
 	if strings.TrimSpace(material.UnitOfMeasure) == "" {
-		return nil, errors.New("Unidad de medida es requerida")
+		return nil, errors.New("unit of measure is required")
 	}
 
-	// Definir estado inicial
 	material.IsActive = true
-
 	return s.repo.Create(material)
 }
 
-// FindAll devuelve todos los materiales.
+// FindAll returns all materials.
 func (s *service) FindAll() ([]entities.Material, error) {
 	return s.repo.FindAll()
 }
 
-// FindByID devuelve un material por su UUID.
+// FindByID returns a material by UUID.
 func (s *service) FindByID(id uuid.UUID) (*entities.Material, error) {
 	return s.repo.FindByID(id)
 }
 
-// Update valida la entidad y delega la actualización al repositorio.
+// Update validates the entity and delegates the update to the repository.
 func (s *service) Update(material *entities.Material) (*entities.Material, error) {
-
-	// Validaciones basicas y Trim
 	if material == nil || material.ID == uuid.Nil {
-		return nil, errors.New("La id del material es requerida")
+		return nil, errors.New("material id is required")
 	}
 	if strings.TrimSpace(material.Name) == "" {
-		return nil, errors.New("Nombre del material es requerido")
+		return nil, errors.New("material name is required")
 	}
 	return s.repo.Update(material)
 }
 
-// Deactivate realiza un borrado lógico (cambia IsActive a false).
+// Deactivate performs a logical delete by setting IsActive to false.
+// The operation is idempotent.
 func (s *service) Deactivate(id uuid.UUID) error {
 	m, err := s.repo.FindByID(id)
 	if err != nil {
 		return err
 	}
-
 	if !m.IsActive {
-		// Ya estaba desactivado, consideramos la operación idempotente
 		return nil
 	}
-
 	m.IsActive = false
 	_, err = s.repo.Update(m)
 	return err
