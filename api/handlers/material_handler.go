@@ -1,8 +1,8 @@
 package handlers
 
-// Package handlers contiene los controladores HTTP para los recursos de la API.
-// Cada handler se encarga de validar la petición, convertir DTOs a entidades,
-// invocar la capa de servicio y formatear la respuesta.
+// Package handlers contains HTTP handlers for API resources.
+// Handlers validate requests, map input DTOs to domain entities,
+// invoke the service layer, and format responses.
 
 import (
 	"github.com/gofiber/fiber/v2"
@@ -12,21 +12,20 @@ import (
 	"github.com/unknowncode44/unknown-go-server/pkg/material"
 )
 
-// MaterialHandler gestiona las operaciones HTTP relacionadas con materiales.
-// Contiene la dependencia a la capa de servicio para delegar la lógica de negocio.
+// MaterialHandler manages HTTP operations related to materials.
+// It delegates business logic to the provided material.Service.
 type MaterialHandler struct {
 	service material.Service
 }
 
-// NewMaterialHandler crea una nueva instancia de MaterialHandler con la dependencia inyectada.
+// NewMaterialHandler returns a new MaterialHandler using the given service.
 func NewMaterialHandler(service material.Service) *MaterialHandler {
 	return &MaterialHandler{service: service}
 }
 
-// Create procesa la solicitud POST para crear un nuevo material.
-// - Valida el body de la petición y los campos obligatorios.
-// - Convierte el DTO a entidad y delega la creación al servicio.
-// - Devuelve 201 con el material creado o 400/500 según corresponda.
+// Create handles POST /materials. It validates the request body and
+// required fields, converts the DTO to an entity, and delegates creation
+// to the service. Returns 201 with the created material on success.
 func (h *MaterialHandler) Create(c *fiber.Ctx) error {
 	var req presenter.CreateMaterialRequest
 	if err := c.BodyParser(&req); err != nil {
@@ -56,8 +55,7 @@ func (h *MaterialHandler) Create(c *fiber.Ctx) error {
 	})
 }
 
-// GetAll devuelve la lista completa de materiales (GET).
-// Prealoca el slice de respuesta para mejorar rendimiento en colecciones grandes.
+// GetAll handles GET /materials and returns the list of materials.
 func (h *MaterialHandler) GetAll(c *fiber.Ctx) error {
 	materials, err := h.service.FindAll()
 	if err != nil {
@@ -70,8 +68,8 @@ func (h *MaterialHandler) GetAll(c *fiber.Ctx) error {
 	})
 }
 
-// GetById devuelve un material por su ID (GET /:id).
-// Valida que el ID tenga formato UUID y delega la búsqueda al servicio.
+// GetById handles GET /materials/:id. It validates the UUID and
+// returns the material or an appropriate error status.
 func (h *MaterialHandler) GetById(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
@@ -89,8 +87,8 @@ func (h *MaterialHandler) GetById(c *fiber.Ctx) error {
 	})
 }
 
-// Update aplica cambios sobre un material existente (PUT /:id).
-// - Valida ID y body, busca la entidad y delega la actualización al servicio.
+// Update handles PUT /materials/:id. It requires at least one field to
+// update, applies changes to the entity and delegates persistence to the service.
 func (h *MaterialHandler) Update(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
@@ -135,8 +133,8 @@ func (h *MaterialHandler) Update(c *fiber.Ctx) error {
 	})
 }
 
-// Deactivate realiza el borrado lógico de un material (DELETE /:id).
-// Devuelve 204 cuando la operación es exitosa.
+// Deactivate handles DELETE /materials/:id performing a logical delete.
+// Returns HTTP 204 on success.
 func (h *MaterialHandler) Deactivate(c *fiber.Ctx) error {
 	idParam := c.Params("id")
 	id, err := uuid.Parse(idParam)

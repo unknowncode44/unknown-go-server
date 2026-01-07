@@ -1,3 +1,6 @@
+// Package handlers contains HTTP handlers for API resources.
+// Handlers validate requests, map input DTOs to domain entities,
+// invoke the service layer, and format responses.
 package handlers
 
 import (
@@ -8,15 +11,21 @@ import (
 	"github.com/unknowncode44/unknown-go-server/pkg/vendor"
 )
 
+// VendorHandler handles HTTP requests for vendor resources.
+// It depends on a vendor.Service to perform business logic and
+// persistence operations.
 type VendorHandler struct {
 	service vendor.Service
 }
 
+// NewVendorHandler creates a new VendorHandler with the provided service.
 func NewVendorHandler(service vendor.Service) *VendorHandler {
 	return &VendorHandler{service: service}
 }
 
-// POST /vendors
+// Create handles POST /vendors and creates a new vendor.
+// It expects a JSON body matching presenter.CreateVendorRequest.
+// On success it returns HTTP 201 with the created vendor.
 func (h *VendorHandler) Create(c *fiber.Ctx) error {
 	var req presenter.CreateVendorRequest
 
@@ -42,7 +51,7 @@ func (h *VendorHandler) Create(c *fiber.Ctx) error {
 		})
 }
 
-// GET /vendors
+// FindAll handles GET /vendors and returns all vendors.
 func (h *VendorHandler) FindAll(c *fiber.Ctx) error {
 	vendors, err := h.service.FindAll()
 	if err != nil {
@@ -55,7 +64,8 @@ func (h *VendorHandler) FindAll(c *fiber.Ctx) error {
 	})
 }
 
-// GET /vendors/:id
+// FindByID handles GET /vendors/:id and returns a vendor by UUID.
+// Returns 400 for invalid UUIDs and 404 if the vendor is not found.
 func (h *VendorHandler) FindByID(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
@@ -73,7 +83,8 @@ func (h *VendorHandler) FindByID(c *fiber.Ctx) error {
 	})
 }
 
-// PUT /vendors/:id
+// Update handles PUT /vendors/:id and applies updates to an existing vendor.
+// It requires at least one updatable field in the request body.
 func (h *VendorHandler) Update(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
@@ -121,7 +132,8 @@ func (h *VendorHandler) Update(c *fiber.Ctx) error {
 	})
 }
 
-// DELETE /vendors/:id
+// Deactivate handles DELETE /vendors/:id and performs a logical delete.
+// Returns 204 on success.
 func (h *VendorHandler) Deactivate(c *fiber.Ctx) error {
 	id, err := uuid.Parse(c.Params("id"))
 	if err != nil {
