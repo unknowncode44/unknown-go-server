@@ -6,8 +6,8 @@ import (
 	"gorm.io/gorm"
 )
 
-// Repository define las operaciones de persistencia para Vendor.
-// Se usa por la capa de servicio para abstraer detalles de GORM.
+// Repository defines persistence operations for Vendor entities.
+// The service layer depends on this interface to remain persistence-agnostic.
 type Repository interface {
 	Create(vendor *entities.Vendor) (*entities.Vendor, error)
 	FindAll() ([]entities.Vendor, error)
@@ -16,49 +16,44 @@ type Repository interface {
 	Delete(id uuid.UUID) error
 }
 
-// repository es la implementación basada en GORM de Repository.
+// repository is the GORM-backed Repository implementation.
 type repository struct {
 	db *gorm.DB
 }
 
-// NewRepo crea una instancia del repositorio de Vendor con la DB proporcionada.
+// NewRepo returns a new Repository using the provided GORM DB.
 func NewRepo(db *gorm.DB) Repository {
 	return &repository{db: db}
 }
 
-// Create inserta un nuevo registro de vendor en la base de datos.
+// Create inserts a new vendor record into the database.
 func (r *repository) Create(vendor *entities.Vendor) (*entities.Vendor, error) {
-	if err := r.db.
-		Create(vendor).Error; err != nil {
+	if err := r.db.Create(vendor).Error; err != nil {
 		return nil, err
 	}
 	return vendor, nil
 }
 
-// FindAll recupera todos los registros de vendor.
+// FindAll retrieves all vendor records.
 func (r *repository) FindAll() ([]entities.Vendor, error) {
 	var vendors []entities.Vendor
-	if err := r.db.
-		Find(&vendors).Error; err != nil {
+	if err := r.db.Find(&vendors).Error; err != nil {
 		return nil, err
 	}
-
 	return vendors, nil
 }
 
-// FindByID busca un material por su UUID.
+// FindByID returns a vendor by its UUID.
 func (r *repository) FindByID(id uuid.UUID) (*entities.Vendor, error) {
 	var vendor entities.Vendor
-	if err := r.db.
-		First(&vendor, "id = ?", id).Error; err != nil {
+	if err := r.db.First(&vendor, "id = ?", id).Error; err != nil {
 		return nil, err
 	}
-
 	return &vendor, nil
 }
 
-// Update aplica los cambios de la entidad en la base y devuelve la entidad actualizada.
-// Utiliza un mapa para asegurar que los valores falsos (como IsActive=false) se persistan correctamente.
+// Update applies changes to the vendor record and returns the updated entity.
+// Uses an updates map so falsey values (e.g. IsActive=false) persist correctly.
 func (r *repository) Update(vendor *entities.Vendor) (*entities.Vendor, error) {
 	if err := r.db.
 		Model(&entities.Vendor{}).
@@ -71,11 +66,10 @@ func (r *repository) Update(vendor *entities.Vendor) (*entities.Vendor, error) {
 		}).Error; err != nil {
 		return nil, err
 	}
-
 	return vendor, nil
 }
 
-// Delete elimina el registro identificado por el UUID.
+// Delete performs a logical delete by setting `is_active` to false.
 func (r *repository) Delete(id uuid.UUID) error {
 	return r.db.Model(&entities.Vendor{}).
 		Where("id = ?", id).
