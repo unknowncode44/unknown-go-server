@@ -13,6 +13,7 @@ import (
 	"github.com/unknowncode44/unknown-go-server/pkg/company"
 	"github.com/unknowncode44/unknown-go-server/pkg/material"
 	"github.com/unknowncode44/unknown-go-server/pkg/vendor"
+	"github.com/unknowncode44/unknown-go-server/pkg/vendor_material"
 )
 
 // la estructura fiberServer la utilizaremos para el servidor, la db y la configuracion
@@ -52,12 +53,18 @@ func NewFiberServer(conf *config.Config, db database.Database) Server {
 	vendorService := vendor.NewService(vendorRepo)
 	vendorHandler := handlers.NewVendorHandler(vendorService)
 
+	// VendorMaterial
+	vmRepo := vendor_material.NewRepo(db.GetDb())
+	vmService := vendor_material.NewService(vmRepo)
+	vmHandler := handlers.NewVendorMaterialHandler(vmService)
+
 	// global api route
 	api := fiberApp.Group("/api/v1")
 
 	routes.CompanyRouter(api, companyService)
 	routes.MaterialRoutes(api, materialHandler)
 	routes.VendorRoutes(api, vendorHandler)
+	routes.VendorMaterialRoutes(api, vmHandler)
 
 	return &fiberServer{
 		app:  fiberApp,
