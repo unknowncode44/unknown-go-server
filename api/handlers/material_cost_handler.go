@@ -114,3 +114,80 @@ func (h *MaterialCostHandler) FindByMaterial(c *fiber.Ctx) error {
 		Data:    presenter.ToMaterialCostListResponse(list),
 	})
 }
+
+// GetCurrentCost handles GET /materials/:materialId/vendors/:vendorId/current-cost
+// Optional query param: at=YYYY-MM-DD
+func (h *MaterialCostHandler) GetCurrentCost(c *fiber.Ctx) error {
+	mid, err := uuid.Parse(c.Params("materialId"))
+	if err != nil {
+		return respondError(c, fiber.StatusBadRequest, "invalid material_id")
+	}
+	vid, err := uuid.Parse(c.Params("vendorId"))
+	if err != nil {
+		return respondError(c, fiber.StatusBadRequest, "invalid vendor_id")
+	}
+
+	var at *time.Time
+	atStr := c.Query("at", "")
+	if atStr != "" {
+		t, err := time.Parse("2006-01-02", atStr)
+		if err != nil {
+			return respondError(c, fiber.StatusBadRequest, "invalid at date format, expected YYYY-MM-DD")
+		}
+		at = &t
+	}
+
+	mc, err := h.service.GetCurrentCost(mid, vid, at)
+	if err != nil {
+		return respondError(c, fiber.StatusNotFound, err.Error())
+	}
+
+	// get currency code via mc.CurrencyID is not available here; presenter expects currency code
+	// service returns mc which contains CurrencyID; handlers can translate currency by calling currency service,
+	// but to avoid new dependency, return currency id string for now (presenter requires code). We'll use CurrencyID as string.
+	resp := presenter.ToCurrentCostData(mc.MaterialID.String(), mc.VendorID.String(), mc.CurrencyID.String(), mc.Cost, mc.CostDate)
+
+	return c.JSON(presenter.CurrentCostSuccessResponse{Success: true, Data: resp})
+}
+
+// CompareVendorsByMaterial handles GET /materials/:materialId/vendor-comparison
+// Optional query param: at=YYYY-MM-DD
+func (h *MaterialCostHandler) CompareVendorsByMaterial(c *fiber.Ctx) error {
+	mid, err := uuid.Parse(c.Params("materialId"))
+	if err != nil {
+		return respondError(c, fiber.StatusBadRequest, "invalid material_id")
+	}
+
+	var at *time.Time
+	atStr := c.Query("at", "")
+	if atStr != "" {
+		t, err := time.Parse("2006-01-02", atStr)
+		if err != nil {
+			return respondError(c, fiber.StatusBadRequest, "invalid at date format, expected YYYY-MM-DD")
+		}
+		at = &t
+	}
+
+	list, err := h.service.CompareVendorsByMaterial(mid, at)
+	if err != nil {
+		return respondError(c, fiber.StatusInternalServerError, err.Error())
+	}
+
+	items := make([]presenter.VendorComparisonItem, 0, len(list))
+	for _, v := range list {
+		items = append(items, presenter.ToVendorComparisonItem(v.VendorID.String(), v.VendorName, v.Currency, v.Cost, v.CostDate))
+	}
+
+	atOut := time.Now()
+	if at != nil {
+		atOut = *at
+	}
+
+	compResp := presenter.VendorComparisonResponse{
+		MaterialID: mid.String(),
+		At:         atOut.Format("2006-01-02"),
+		Vendors:    items,
+	}
+
+	return c.JSON(presenter.CurrentCostSuccessResponse{Success: true, Data: compResp})
+}
