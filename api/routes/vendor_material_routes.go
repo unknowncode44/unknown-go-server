@@ -6,11 +6,11 @@ import (
 )
 
 func VendorMaterialRoutes(router fiber.Router, handler *handlers.VendorMaterialHandler) {
-	vms := router.Group("/vendor_materials")
+	vms := router.Group("/vendor-materials")
 
 	vms.Post("/", handler.Create)
 	vms.Get("/", handler.GetAll)
-	vms.Get(":id", handler.GetByID)
-	vms.Put(":id", handler.Update)
-	vms.Delete(":id", handler.Deactivate)
+	vms.Get("/:id", handler.GetByID)
+	vms.Put("/:id", handler.Update)
+	vms.Delete("/:id", handler.Deactivate)
 }
