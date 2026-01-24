@@ -16,6 +16,7 @@ type Material struct {
 	Name          string    `gorm:"size:255;not null"`
 	Sector        string    `gorm:"size:100;not null"`
 	UnitOfMeasure string    `gorm:"size:50;not null"`
+	Code          string    `gorm:"size:50;uniqueIndex;not null"`
 	IsActive      bool      `gorm:"default:true;not null"`
 	CreatedAt     time.Time
 	UpdatedAt     time.Time

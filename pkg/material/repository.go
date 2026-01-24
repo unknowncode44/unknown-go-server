@@ -12,6 +12,7 @@ type Repository interface {
 	Create(material *entities.Material) (*entities.Material, error)
 	FindAll() ([]entities.Material, error)
 	FindByID(id uuid.UUID) (*entities.Material, error)
+	FindByCode(code string) (*entities.Material, error)
 	Update(material *entities.Material) (*entities.Material, error)
 	Delete(id uuid.UUID) error
 }
@@ -52,6 +53,15 @@ func (r *repository) FindByID(id uuid.UUID) (*entities.Material, error) {
 	return &material, nil
 }
 
+// FindByCode returns a material by its code.
+func (r *repository) FindByCode(code string) (*entities.Material, error) {
+	var material entities.Material
+	if err := r.db.First(&material, "code = ?", code).Error; err != nil {
+		return nil, err
+	}
+	return &material, nil
+}
+
 // Update applies changes to the material record and returns the updated entity.
 // Uses an updates map so falsey values (e.g. IsActive=false) persist correctly.
 func (r *repository) Update(material *entities.Material) (*entities.Material, error) {
@@ -62,6 +72,7 @@ func (r *repository) Update(material *entities.Material) (*entities.Material, er
 			"name":            material.Name,
 			"sector":          material.Sector,
 			"unit_of_measure": material.UnitOfMeasure,
+			"code":            material.Code,
 			"is_active":       material.IsActive,
 		}).Error; err != nil {
 		return nil, err

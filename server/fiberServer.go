@@ -10,8 +10,11 @@ import (
 	"github.com/unknowncode44/unknown-go-server/api/routes"
 	"github.com/unknowncode44/unknown-go-server/config"
 	database "github.com/unknowncode44/unknown-go-server/db"
+	"github.com/unknowncode44/unknown-go-server/pkg/asset"
+	"github.com/unknowncode44/unknown-go-server/pkg/asset_movement"
 	"github.com/unknowncode44/unknown-go-server/pkg/company"
 	"github.com/unknowncode44/unknown-go-server/pkg/currency"
+	"github.com/unknowncode44/unknown-go-server/pkg/location"
 	"github.com/unknowncode44/unknown-go-server/pkg/material"
 	"github.com/unknowncode44/unknown-go-server/pkg/material_cost"
 	"github.com/unknowncode44/unknown-go-server/pkg/vendor"
@@ -70,6 +73,21 @@ func NewFiberServer(conf *config.Config, db database.Database) Server {
 	currencyService := currency.NewService(currencyRepo)
 	currencyHandler := handlers.NewCurrencyHandler(currencyService)
 
+	// Location
+	locationRepo := location.NewRepo(db.GetDb())
+	locationService := location.NewService(locationRepo)
+	locationHandler := handlers.NewLocationHandler(locationService)
+
+	// AssetMovement
+	amRepo := asset_movement.NewRepo(db.GetDb())
+	amService := asset_movement.NewService(amRepo)
+	amHandler := handlers.NewAssetMovementHandler(amService)
+
+	// Asset
+	assetRepo := asset.NewRepo(db.GetDb())
+	assetService := asset.NewService(assetRepo, materialRepo)
+	assetHandler := handlers.NewAssetHandler(assetService, amService)
+
 	// global api route
 	api := fiberApp.Group("/api/v1")
 
@@ -79,6 +97,15 @@ func NewFiberServer(conf *config.Config, db database.Database) Server {
 	routes.VendorRoutes(api, vendorHandler)
 	routes.VendorMaterialRoutes(api, vmHandler)
 	routes.MaterialCostRoutes(api, mcHandler)
+	routes.LocationRoutes(api, locationHandler)
+	routes.AssetRoutes(api, assetHandler)
+	routes.AssetMovementRoutes(api, amHandler)
+	// register asset-scoped movement endpoints
+	routes.AssetMovementByAssetRoutes(api, amHandler)
+
+	// public routes
+	public := fiberApp.Group("/public")
+	routes.PublicAssetRoute(public, assetHandler)
 
 	return &fiberServer{
 		app:  fiberApp,
