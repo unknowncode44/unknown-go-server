@@ -41,6 +41,8 @@ func (h *MaterialHandler) Create(c *fiber.Ctx) error {
 		Name:          req.Name,
 		Sector:        req.Sector,
 		UnitOfMeasure: req.UnitOfMeasure,
+		InternalCode:  req.InternalCode,
+		ERPCode:       req.ERPCode,
 	}
 
 	created, err := h.service.Create(materialEntity)
