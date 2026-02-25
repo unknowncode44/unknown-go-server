@@ -6,6 +6,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/unknowncode44/unknown-go-server/pkg/entities"
+	"gorm.io/gorm"
 )
 
 // Package material provides domain interfaces and implementations for
@@ -45,6 +46,17 @@ func (s *service) Create(material *entities.Material) (*entities.Material, error
 	}
 	if strings.TrimSpace(material.UnitOfMeasure) == "" {
 		return nil, errors.New("unit of measure is required")
+	}
+	material.Code = strings.TrimSpace(material.Code)
+	if material.Code == "" {
+		return nil, errors.New("material code is required")
+	}
+
+	// check duplicates
+	if existing, err := s.repo.FindByCode(material.Code); err == nil && existing != nil {
+		return nil, errors.New("material code already exists")
+	} else if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return nil, err
 	}
 
 	material.IsActive = true
