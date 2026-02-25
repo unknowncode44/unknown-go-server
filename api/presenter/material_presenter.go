@@ -14,6 +14,7 @@ type CreateMaterialRequest struct {
 	UnitOfMeasure string `json:"unitOfMeasure"`
 	ERPCode       string `json:"erpCode"`
 	InternalCode  string `json:"internalCode"`
+	Code          string `json:"code"`
 }
 
 // UpdateMaterialRequest representa los campos permitidos para actualizar un material.
@@ -24,6 +25,7 @@ type UpdateMaterialRequest struct {
 	UnitOfMeasure string `json:"unitOfMeasure"`
 	ERPCode       string `json:"erpCode"`
 	InternalCode  string `json:"internalCode"`
+	Code          string `json:"code"`
 }
 
 // MaterialResponse define la respuesta que devuelve la API para un material.
@@ -34,6 +36,7 @@ type MaterialResponse struct {
 	ERPCode       string    `json:"erpCode"`
 	InternalCode  string    `json:"internalCode"`
 	UnitOfMeasure string    `json:"unitOfMeasure"`
+	Code          string    `json:"code"`
 	IsActive      bool      `json:"isActive"`
 	CreatedAt     time.Time `json:"createdAt"`
 	UpdatedAt     time.Time `json:"updatedAt"`
@@ -64,6 +67,7 @@ func ToMaterialResponse(m *entities.Material) MaterialResponse {
 		ERPCode:       m.ERPCode,
 		InternalCode:  m.InternalCode,
 		UnitOfMeasure: m.UnitOfMeasure,
+		Code:          m.Code,
 		IsActive:      m.IsActive,
 		CreatedAt:     m.CreatedAt,
 		UpdatedAt:     m.UpdatedAt,
@@ -82,6 +86,7 @@ func ToMaterialListResponse(vendors []entities.Material) []MaterialResponse {
 			ERPCode:       m.ERPCode,
 			InternalCode:  m.InternalCode,
 			UnitOfMeasure: m.UnitOfMeasure,
+			Code:          m.Code,
 			IsActive:      m.IsActive,
 			CreatedAt:     m.CreatedAt,
 			UpdatedAt:     m.UpdatedAt,
