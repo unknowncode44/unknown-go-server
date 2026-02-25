@@ -12,7 +12,6 @@ import (
 	database "github.com/unknowncode44/unknown-go-server/db"
 	"github.com/unknowncode44/unknown-go-server/pkg/asset"
 	"github.com/unknowncode44/unknown-go-server/pkg/asset_movement"
-	"github.com/unknowncode44/unknown-go-server/pkg/company"
 	"github.com/unknowncode44/unknown-go-server/pkg/currency"
 	"github.com/unknowncode44/unknown-go-server/pkg/location"
 	"github.com/unknowncode44/unknown-go-server/pkg/material"
@@ -43,10 +42,6 @@ func NewFiberServer(conf *config.Config, db database.Database) Server {
 	})
 
 	// repos & services
-
-	// Company
-	companyRepo := company.NewRepo(db.GetDb())
-	companyService := company.NewService(companyRepo)
 
 	// Material
 	materialRepo := material.NewRepo(db.GetDb())
@@ -82,7 +77,7 @@ func NewFiberServer(conf *config.Config, db database.Database) Server {
 	assetRepo := asset.NewRepo(db.GetDb())
 	assetService := asset.NewService(assetRepo, materialRepo)
 	assetHandler := handlers.NewAssetHandler(assetService, amService)
-  
+
 	// MaterialCost
 	mcRepo := material_cost.NewRepo(db.GetDb())
 	mcService := material_cost.NewService(mcRepo, vmRepo, vendorRepo, currencyRepo)
@@ -91,7 +86,7 @@ func NewFiberServer(conf *config.Config, db database.Database) Server {
 	// global api route
 	api := fiberApp.Group("/api/v1")
 
-	routes.CompanyRouter(api, companyService)
+	// routes.CompanyRouter(api, companyService)
 	routes.MaterialRoutes(api, materialHandler)
 	routes.CurrencyRoutes(api, currencyHandler)
 	routes.VendorRoutes(api, vendorHandler)
