@@ -11,6 +11,7 @@ type Repository interface {
 	Create(vm *entities.VendorMaterial) (*entities.VendorMaterial, error)
 	FindAll() ([]entities.VendorMaterial, error)
 	FindByID(id uuid.UUID) (*entities.VendorMaterial, error)
+	FindActiveByMaterial(materialID uuid.UUID) ([]entities.VendorMaterial, error)
 	Update(vm *entities.VendorMaterial) (*entities.VendorMaterial, error)
 	Delete(id uuid.UUID) error
 }
@@ -58,6 +59,16 @@ func (r *repository) Update(vm *entities.VendorMaterial) (*entities.VendorMateri
 		return nil, err
 	}
 	return vm, nil
+}
+
+func (r *repository) FindActiveByMaterial(materialID uuid.UUID) ([]entities.VendorMaterial, error) {
+	var vms []entities.VendorMaterial
+	if err := r.db.Where("material_id = ? AND is_active = ?", materialID, true).
+		Order("created_at desc").
+		Find(&vms).Error; err != nil {
+		return nil, err
+	}
+	return vms, nil
 }
 
 func (r *repository) Delete(id uuid.UUID) error {

@@ -15,4 +15,6 @@ func MaterialCostRoutes(router fiber.Router, handler *handlers.MaterialCostHandl
 	// route to get costs for a given material
 	materials := router.Group("/materials")
 	materials.Get("/:id/costs", handler.FindByMaterial)
+	materials.Get("/:materialId/vendors/:vendorId/current-cost", handler.GetCurrentCost)
+	materials.Get("/:materialId/vendor-comparison", handler.CompareVendorsByMaterial)
 }
