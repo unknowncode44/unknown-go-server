@@ -1,6 +1,8 @@
 package material_cost
 
 import (
+	"time"
+
 	"github.com/google/uuid"
 	"github.com/unknowncode44/unknown-go-server/pkg/entities"
 	"gorm.io/gorm"
@@ -13,6 +15,7 @@ type Repository interface {
 	FindByID(id uuid.UUID) (*entities.MaterialCost, error)
 	FindByMaterial(materialID uuid.UUID) ([]entities.MaterialCost, error)
 	FindLatestByMaterialAndVendor(materialID uuid.UUID, vendorID uuid.UUID) (*entities.MaterialCost, error)
+	FindCurrentCost(materialID uuid.UUID, vendorID uuid.UUID, at time.Time) (*entities.MaterialCost, error)
 }
 
 type repository struct {
@@ -59,6 +62,17 @@ func (r *repository) FindLatestByMaterialAndVendor(materialID uuid.UUID, vendorI
 	var mc entities.MaterialCost
 	if err := r.db.Where("material_id = ? AND vendor_id = ?", materialID, vendorID).
 		Order("cost_date desc, created_at desc").
+		First(&mc).Error; err != nil {
+		return nil, err
+	}
+	return &mc, nil
+}
+
+func (r *repository) FindCurrentCost(materialID uuid.UUID, vendorID uuid.UUID, at time.Time) (*entities.MaterialCost, error) {
+	var mc entities.MaterialCost
+	if err := r.db.Where("material_id = ? AND vendor_id = ? AND cost_date <= ?", materialID, vendorID, at).
+		Order("cost_date desc, created_at desc").
+		Limit(1).
 		First(&mc).Error; err != nil {
 		return nil, err
 	}

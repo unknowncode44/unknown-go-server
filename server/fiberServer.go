@@ -63,11 +63,6 @@ func NewFiberServer(conf *config.Config, db database.Database) Server {
 	vmService := vendor_material.NewService(vmRepo)
 	vmHandler := handlers.NewVendorMaterialHandler(vmService)
 
-	// MaterialCost
-	mcRepo := material_cost.NewRepo(db.GetDb())
-	mcService := material_cost.NewService(mcRepo)
-	mcHandler := handlers.NewMaterialCostHandler(mcService)
-
 	// Currency
 	currencyRepo := currency.NewRepo(db.GetDb())
 	currencyService := currency.NewService(currencyRepo)
@@ -87,6 +82,11 @@ func NewFiberServer(conf *config.Config, db database.Database) Server {
 	assetRepo := asset.NewRepo(db.GetDb())
 	assetService := asset.NewService(assetRepo, materialRepo)
 	assetHandler := handlers.NewAssetHandler(assetService, amService)
+  
+	// MaterialCost
+	mcRepo := material_cost.NewRepo(db.GetDb())
+	mcService := material_cost.NewService(mcRepo, vmRepo, vendorRepo, currencyRepo)
+	mcHandler := handlers.NewMaterialCostHandler(mcService)
 
 	// global api route
 	api := fiberApp.Group("/api/v1")
