@@ -16,6 +16,7 @@ import (
 	"github.com/unknowncode44/unknown-go-server/pkg/location"
 	"github.com/unknowncode44/unknown-go-server/pkg/material"
 	"github.com/unknowncode44/unknown-go-server/pkg/material_cost"
+	"github.com/unknowncode44/unknown-go-server/pkg/sync_purchase_order"
 	"github.com/unknowncode44/unknown-go-server/pkg/vendor"
 	"github.com/unknowncode44/unknown-go-server/pkg/vendor_material"
 )
@@ -83,6 +84,11 @@ func NewFiberServer(conf *config.Config, db database.Database) Server {
 	mcService := material_cost.NewService(mcRepo, vmRepo, vendorRepo, currencyRepo)
 	mcHandler := handlers.NewMaterialCostHandler(mcService)
 
+	// SyncPurchaseOrders
+	spoRepo := sync_purchase_order.NewRepo(db.GetDb())
+	spoService := sync_purchase_order.NewService(spoRepo)
+	spoHandler := handlers.NewSyncOrderHandler(spoService)
+
 	// global api route
 	api := fiberApp.Group("/api/v1")
 
@@ -101,6 +107,7 @@ func NewFiberServer(conf *config.Config, db database.Database) Server {
 	// public routes
 	public := fiberApp.Group("/public")
 	routes.PublicAssetRoute(public, assetHandler)
+	routes.PublicSyncPurchaseOrdersRoute(public, spoHandler)
 
 	return &fiberServer{
 		app:  fiberApp,
