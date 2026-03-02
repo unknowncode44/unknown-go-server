@@ -3,21 +3,31 @@ package sync_purchase_order
 import (
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/unknowncode44/unknown-go-server/api/presenter"
 	"github.com/unknowncode44/unknown-go-server/pkg/entities"
+	"github.com/unknowncode44/unknown-go-server/pkg/material"
+	"github.com/unknowncode44/unknown-go-server/pkg/vendor"
 )
 
 type Service interface {
 	SyncOrders(req []presenter.SyncPurchaseOrderRequest) (int, error)
 	GetAllOrders() ([]entities.PurchaseOrderSync, error)
+	AssignLinks(id uint, materialId uuid.UUID, taxId string) (*entities.PurchaseOrderSync, error)
 }
 
 type service struct {
-	repo Repository
+	repo  Repository
+	mRepo material.Repository
+	vRepo vendor.Repository
 }
 
-func NewService(r Repository) Service {
-	return &service{repo: r}
+func NewService(r Repository, materialRepo material.Repository, vendorRepo vendor.Repository) Service {
+	return &service{
+		repo:  r,
+		mRepo: materialRepo,
+		vRepo: vendorRepo,
+	}
 }
 
 func (s *service) SyncOrders(req []presenter.SyncPurchaseOrderRequest) (int, error) {
@@ -49,4 +59,21 @@ func (s *service) SyncOrders(req []presenter.SyncPurchaseOrderRequest) (int, err
 func (s *service) GetAllOrders() ([]entities.PurchaseOrderSync, error) {
 	// Business logic could go here (e.g., filtering inactive records)
 	return s.repo.FindAll()
+}
+
+func (s *service) AssignLinks(id uint, materialId uuid.UUID, taxId string) (*entities.PurchaseOrderSync, error) {
+	m, err := s.mRepo.FindByID(materialId)
+	if err != nil {
+		return nil, err
+	}
+	v, err := s.vRepo.FindByTaxID(taxId)
+	if err != nil {
+		return nil, err
+	}
+	po, err := s.repo.FindByID(id)
+	if err != nil {
+		return nil, err
+	}
+
+	return s.repo.UpdateLinks(po, &m.ID, &v.ID)
 }

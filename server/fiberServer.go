@@ -86,7 +86,7 @@ func NewFiberServer(conf *config.Config, db database.Database) Server {
 
 	// SyncPurchaseOrders
 	spoRepo := sync_purchase_order.NewRepo(db.GetDb())
-	spoService := sync_purchase_order.NewService(spoRepo)
+	spoService := sync_purchase_order.NewService(spoRepo, materialRepo, vendorRepo)
 	spoHandler := handlers.NewSyncOrderHandler(spoService)
 
 	// global api route
