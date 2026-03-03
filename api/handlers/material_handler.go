@@ -71,6 +71,23 @@ func (h *MaterialHandler) GetAll(c *fiber.Ctx) error {
 	})
 }
 
+// GetMaterialsByERP handles GET /materials and returns the list of materials that matchs erpCode provided.
+func (h *MaterialHandler) GetMaterialsByERP(c *fiber.Ctx) error {
+	erpCode := c.Params("erp_code")
+	if erpCode == "" {
+		return respondError(c, fiber.StatusBadRequest, "Invalid request body")
+	}
+	materials, err := h.service.FindByERPCode(erpCode)
+	if err != nil {
+		return respondError(c, fiber.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(presenter.MaterialSuccessResponse{
+		Success: true,
+		Data:    presenter.ToMaterialListResponse(materials),
+	})
+}
+
 // GetById handles GET /materials/:id. It validates the UUID and
 // returns the material or an appropriate error status.
 func (h *MaterialHandler) GetById(c *fiber.Ctx) error {
@@ -104,7 +121,7 @@ func (h *MaterialHandler) Update(c *fiber.Ctx) error {
 	}
 
 	// require at least one field to update
-	if req.Name == "" && req.Sector == "" && req.UnitOfMeasure == "" {
+	if req.Name == "" && req.Sector == "" && req.UnitOfMeasure == "" && req.ERPCode == "" {
 		return respondError(c, fiber.StatusBadRequest, "No fields provided for update")
 	}
 
@@ -123,6 +140,10 @@ func (h *MaterialHandler) Update(c *fiber.Ctx) error {
 
 	if req.UnitOfMeasure != "" {
 		mat.UnitOfMeasure = req.UnitOfMeasure
+	}
+
+	if req.ERPCode != "" {
+		mat.ERPCode = req.ERPCode
 	}
 
 	updated, err := h.service.Update(mat)

@@ -12,6 +12,7 @@ type Repository interface {
 	Create(vendor *entities.Vendor) (*entities.Vendor, error)
 	FindAll() ([]entities.Vendor, error)
 	FindByID(id uuid.UUID) (*entities.Vendor, error)
+	FindByTaxID(taxId string) (*entities.Vendor, error)
 	Update(vendor *entities.Vendor) (*entities.Vendor, error)
 	Delete(id uuid.UUID) error
 }
@@ -47,6 +48,15 @@ func (r *repository) FindAll() ([]entities.Vendor, error) {
 func (r *repository) FindByID(id uuid.UUID) (*entities.Vendor, error) {
 	var vendor entities.Vendor
 	if err := r.db.First(&vendor, "id = ?", id).Error; err != nil {
+		return nil, err
+	}
+	return &vendor, nil
+}
+
+// FindByTaxID returns a vendor by its UUID.
+func (r *repository) FindByTaxID(taxId string) (*entities.Vendor, error) {
+	var vendor entities.Vendor
+	if err := r.db.First(&vendor, "tax_id = ?", taxId).Error; err != nil {
 		return nil, err
 	}
 	return &vendor, nil
