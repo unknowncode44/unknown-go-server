@@ -13,6 +13,7 @@ type Repository interface {
 	FindAll() ([]entities.Material, error)
 	FindByID(id uuid.UUID) (*entities.Material, error)
 	FindByCode(code string) (*entities.Material, error)
+	FindByERPCode(erpCode string) ([]entities.Material, error)
 	Update(material *entities.Material) (*entities.Material, error)
 	Delete(id uuid.UUID) error
 }
@@ -60,6 +61,15 @@ func (r *repository) FindByCode(code string) (*entities.Material, error) {
 		return nil, err
 	}
 	return &material, nil
+}
+
+// FindByErpCode returns a material by its ERP code.
+func (r *repository) FindByERPCode(erpCode string) ([]entities.Material, error) {
+	var materials []entities.Material
+	if err := r.db.First(&materials, "erp_code = ?", erpCode).Error; err != nil {
+		return nil, err
+	}
+	return materials, nil
 }
 
 // Update applies changes to the material record and returns the updated entity.

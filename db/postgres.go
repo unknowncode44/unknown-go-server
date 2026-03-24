@@ -54,7 +54,9 @@ func NewPostgresDatabase(conf *config.Config) Database {
 
 		// migra las entidades existentes
 		db.Exec(`CREATE EXTENSION IF NOT EXISTS "uuid-ossp"`)
+    
 		err = db.AutoMigrate(&entities.Material{}, &entities.Vendor{}, &entities.VendorMaterial{}, &entities.MaterialCost{}, &entities.Currency{}, &entities.Asset{}, &entities.Location{}, &entities.AssetMovement{}, &entities.AssetSerialCounter{}, &entities.MaterialInventory{}, &entities.DeliveryRecord{})
+
 		if err != nil {
 			log.Fatalf("Falla migrando la bd: %v", err)
 		} else {

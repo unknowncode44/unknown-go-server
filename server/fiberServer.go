@@ -118,6 +118,7 @@ func NewFiberServer(conf *config.Config, db database.Database) Server {
 	// public routes
 	public := fiberApp.Group("/public")
 	routes.PublicAssetRoute(public, assetHandler)
+	routes.PublicSyncPurchaseOrdersRoute(public, spoHandler)
 
 	return &fiberServer{
 		app:  fiberApp,
