@@ -8,4 +8,5 @@ import (
 func PublicSyncPurchaseOrdersRoute(router fiber.Router, handler *handlers.SyncPurchaseOrderHandler) {
 	router.Post("/sync/purchase-orders", handler.SyncPurchaseOrders)
 	router.Get("/sync/purchase-orders", handler.GetPurchaseOrders)
+	router.Patch("/sync/purchase-orders/:id/:material_id/:vendor_tax_id", handler.UpdatePORecords)
 }

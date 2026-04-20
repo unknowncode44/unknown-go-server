@@ -16,7 +16,8 @@ import (
 	"github.com/unknowncode44/unknown-go-server/pkg/location"
 	"github.com/unknowncode44/unknown-go-server/pkg/material"
 	"github.com/unknowncode44/unknown-go-server/pkg/material_cost"
-	"github.com/unknowncode44/unknown-go-server/pkg/sync_purchase_order"
+	"github.com/unknowncode44/unknown-go-server/pkg/delivery_record"
+	"github.com/unknowncode44/unknown-go-server/pkg/material_inventory"
 	"github.com/unknowncode44/unknown-go-server/pkg/vendor"
 	"github.com/unknowncode44/unknown-go-server/pkg/vendor_material"
 )
@@ -84,10 +85,16 @@ func NewFiberServer(conf *config.Config, db database.Database) Server {
 	mcService := material_cost.NewService(mcRepo, vmRepo, vendorRepo, currencyRepo)
 	mcHandler := handlers.NewMaterialCostHandler(mcService)
 
-	// SyncPurchaseOrders
-	spoRepo := sync_purchase_order.NewRepo(db.GetDb())
-	spoService := sync_purchase_order.NewService(spoRepo)
-	spoHandler := handlers.NewSyncOrderHandler(spoService)
+	// MaterialInventory
+	miRepo := material_inventory.NewRepo(db.GetDb())
+	miService := material_inventory.NewService(miRepo, materialRepo)
+
+	// DeliveryRecord
+	drRepo := delivery_record.NewRepo(db.GetDb())
+	drService := delivery_record.NewService(drRepo, miRepo)
+
+	miHandler := handlers.NewMaterialInventoryHandler(miService, drService)
+	drHandler := handlers.NewDeliveryRecordHandler(drService)
 
 	// global api route
 	api := fiberApp.Group("/api/v1")
@@ -103,6 +110,10 @@ func NewFiberServer(conf *config.Config, db database.Database) Server {
 	routes.AssetMovementRoutes(api, amHandler)
 	// register asset-scoped movement endpoints
 	routes.AssetMovementByAssetRoutes(api, amHandler)
+	routes.MaterialInventoryRoutes(api, miHandler)
+	routes.MaterialInventoryByMaterialRoutes(api, miHandler)
+	routes.DeliveryRecordRoutes(api, drHandler)
+	routes.DeliveryRecordByInventoryRoutes(api, miHandler)
 
 	// public routes
 	public := fiberApp.Group("/public")
