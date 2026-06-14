@@ -104,3 +104,18 @@ timezone). Do not commit real credentials.
   real project — branch from `quinar_main_branch`.
 - GitHub: https://github.com/unknowncode44/unknown-go-server
 - Create a feature branch for changes; only commit/push when the user asks.
+
+## Change log policy
+
+Any time a change (feature, bug fix, or any other edit) is **committed, pushed,
+and merged** into `quinar_main_branch`, add a new entry to
+[docs/CHANGELOG.md](docs/CHANGELOG.md). Newest entry on top. Each entry should
+record:
+
+- date, branch/PR (and commit/merge hashes if known);
+- what changed and why;
+- any verification performed (build/vet/run, endpoints hit, etc.);
+- notes or non-blocking follow-ups.
+
+Only log changes that actually landed on `quinar_main_branch` (post-merge), not
+work-in-progress.
