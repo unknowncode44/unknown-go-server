@@ -137,11 +137,15 @@ List all materials. **Response** `200` → `{ "ok": true, "data": [ MaterialResp
 ### `GET /api/v1/materials/:id`
 Get a material by UUID. `400` on invalid UUID, `404` if not found.
 
-> ⚠️ **Routing caveat:** the route `GET /materials/:erp_code` (intended to
-> fetch by ERP code) is registered **after** `GET /materials/:id`. In Fiber the
-> first matching pattern wins, so `:id` always matches a single path segment
-> first and the `:erp_code` handler is effectively unreachable. Treat
-> "get by ERP code" as not currently usable via this path.
+### `GET /api/v1/materials/by-erp/:erp_code`
+List **all** materials that share the given ERP code. Returns a list, not a
+single object: some Bejerman "bag" codes (e.g. `0 MAT GOP21`) group many
+distinct materials under the same ERP code. **Response** `200` →
+`{ "ok": true, "data": [ MaterialResponse, ... ] }` (empty array if none match).
+
+> Note: this route uses a distinctive `by-erp/` prefix so it does not collide
+> with `GET /materials/:id` (in Fiber the first matching single-segment pattern
+> would otherwise win).
 
 ### `PUT /api/v1/materials/:id`
 Update a material. At least one of `name`, `sector`, `unitOfMeasure`,
