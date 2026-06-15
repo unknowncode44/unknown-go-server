@@ -9,10 +9,45 @@ top. Each entry records what changed, why, and any verification performed.
 
 ---
 
+## 2026-06-15 — Persist `erp_code` on material update
+
+**Branch / PR:** `fix_material_erp_update` → to be merged into
+`quinar_main_branch` (merge hash TBD).
+
+### Changes
+- **fix (repository):** `material.Update` omitted `erp_code` from its `Updates`
+  map, so `PUT /api/v1/materials/:id` accepted and echoed a new `erpCode` but
+  never persisted it (silent no-op in the DB). Added `"erp_code"` to the map in
+  `pkg/material/repository.go`.
+
+### Context
+- `erp_code` is **optional at creation** (only `name`, `sector`,
+  `unit_of_measure` and `code` are required; `code` must be unique) and is now
+  **editable** afterwards via `PUT`.
+- Regression-safe: the update handler loads the full material before applying
+  changes, so partial updates (and `Deactivate`, which reuses `Update`) preserve
+  the existing `erp_code` rather than blanking it.
+
+### Verification — "does it run?" (on `fix_material_erp_update`)
+| Check | Result |
+|-------|--------|
+| `go build ./...` | ✅ exit 0 |
+| `go vet ./...` | ✅ exit 0 |
+| Server boot + DB connection (remote `quinar`) | ✅ |
+| `PUT /materials/:id` with `erpCode` then re-`GET` | ✅ new value persisted |
+| `PUT /materials/:id` with only `name` | ✅ `erp_code` preserved |
+
+### Notes / follow-ups (not blocking)
+- `internal_code` is similarly absent from the update map, but it is intentionally
+  left out: it seeds asset serial generation, so editing it after assets exist is
+  not a safe one-line change. Out of scope here.
+
+---
+
 ## 2026-06-14 — Material ERP-code bugfixes + new `need` purchase domain
 
-**Branch / PR:** `needs_features` → to be merged into `quinar_main_branch`
-(commits `d5a47f0`, `b5a0129`, `2cf6088`; merge hash TBD).
+**Branch / PR:** `needs_features` → merged into `quinar_main_branch` via PR #22
+(merge `09c9ece`; source commits `d5a47f0`, `b5a0129`, `2cf6088`, `a0be250`).
 
 ### Changes
 

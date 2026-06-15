@@ -84,6 +84,7 @@ func (r *repository) Update(material *entities.Material) (*entities.Material, er
 			"name":            material.Name,
 			"sector":          material.Sector,
 			"unit_of_measure": material.UnitOfMeasure,
+			"erp_code":        material.ERPCode,
 			"code":            material.Code,
 			"is_active":       material.IsActive,
 		}).Error; err != nil {
