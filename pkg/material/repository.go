@@ -63,10 +63,12 @@ func (r *repository) FindByCode(code string) (*entities.Material, error) {
 	return &material, nil
 }
 
-// FindByErpCode returns a material by its ERP code.
+// FindByERPCode returns all materials that share the given ERP code. Some
+// Bejerman "bag" codes (e.g. "0 MAT GOP21") group many distinct materials
+// under the same ERP code, so this must return the full list.
 func (r *repository) FindByERPCode(erpCode string) ([]entities.Material, error) {
 	var materials []entities.Material
-	if err := r.db.First(&materials, "erp_code = ?", erpCode).Error; err != nil {
+	if err := r.db.Where("erp_code = ?", erpCode).Find(&materials).Error; err != nil {
 		return nil, err
 	}
 	return materials, nil

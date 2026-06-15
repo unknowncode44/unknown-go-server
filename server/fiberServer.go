@@ -18,6 +18,7 @@ import (
 	"github.com/unknowncode44/unknown-go-server/pkg/material"
 	"github.com/unknowncode44/unknown-go-server/pkg/material_cost"
 	"github.com/unknowncode44/unknown-go-server/pkg/material_inventory"
+	"github.com/unknowncode44/unknown-go-server/pkg/need"
 	"github.com/unknowncode44/unknown-go-server/pkg/sync_purchase_order"
 	"github.com/unknowncode44/unknown-go-server/pkg/vendor"
 	"github.com/unknowncode44/unknown-go-server/pkg/vendor_material"
@@ -97,6 +98,11 @@ func NewFiberServer(conf *config.Config, db database.Database) Server {
 	miHandler := handlers.NewMaterialInventoryHandler(miService, drService)
 	drHandler := handlers.NewDeliveryRecordHandler(drService)
 
+	// Need
+	needRepo := need.NewRepo(db.GetDb())
+	needService := need.NewService(needRepo, materialRepo)
+	needHandler := handlers.NewNeedHandler(needService)
+
 	// SyncPurchaseOrder
 	spoRepo := sync_purchase_order.NewRepo(db.GetDb())
 	spoService := sync_purchase_order.NewService(spoRepo, materialRepo, vendorRepo)
@@ -120,6 +126,7 @@ func NewFiberServer(conf *config.Config, db database.Database) Server {
 	routes.MaterialInventoryByMaterialRoutes(api, miHandler)
 	routes.DeliveryRecordRoutes(api, drHandler)
 	routes.DeliveryRecordByInventoryRoutes(api, miHandler)
+	routes.NeedRoutes(api, needHandler)
 
 	// public routes
 	public := fiberApp.Group("/public")

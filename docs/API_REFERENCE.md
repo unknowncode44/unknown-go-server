@@ -70,6 +70,7 @@ boolean flag:
 | Asset Movements | `/api/v1/asset-movements` + `/assets/:id/movements` | POST, GET |
 | Material Inventory | `/api/v1/material-inventories` + `/materials/:id/inventory` | POST, GET, PUT, DELETE |
 | Delivery Records | `/api/v1/delivery-records` + `/material-inventories/:id/...` | POST, GET |
+| Needs | `/api/v1/needs` (+ `/:id/items`, `/items/:itemId`) | POST, GET, PUT, DELETE |
 | Purchase Order Sync (public) | `/public/sync/purchase-orders` | POST, GET, PATCH |
 | Public Asset (QR) | `/public/asset/:serial` | GET |
 
@@ -137,11 +138,20 @@ List all materials. **Response** `200` → `{ "ok": true, "data": [ MaterialResp
 ### `GET /api/v1/materials/:id`
 Get a material by UUID. `400` on invalid UUID, `404` if not found.
 
-> ⚠️ **Routing caveat:** the route `GET /materials/:erp_code` (intended to
-> fetch by ERP code) is registered **after** `GET /materials/:id`. In Fiber the
-> first matching pattern wins, so `:id` always matches a single path segment
-> first and the `:erp_code` handler is effectively unreachable. Treat
-> "get by ERP code" as not currently usable via this path.
+### `GET /api/v1/materials/by-erp/:erp_code`
+List **all** materials that share the given ERP code. Returns a list, not a
+single object: some Bejerman "bag" codes (e.g. `0 MAT GOP21`) group many
+distinct materials under the same ERP code. **Response** `200` →
+`{ "ok": true, "data": [ MaterialResponse, ... ] }` (empty array if none match).
+
+ERP codes that contain spaces or other reserved characters must be
+**percent-encoded** by the client (e.g. `0 MAT GOP21` →
+`GET /api/v1/materials/by-erp/0%20MAT%20GOP21`); the handler URL-decodes the
+path segment before querying.
+
+> Note: this route uses a distinctive `by-erp/` prefix so it does not collide
+> with `GET /materials/:id` (in Fiber the first matching single-segment pattern
+> would otherwise win).
 
 ### `PUT /api/v1/materials/:id`
 Update a material. At least one of `name`, `sector`, `unitOfMeasure`,
@@ -689,6 +699,178 @@ List all delivery records → array of `DeliveryRecordResponse`.
 
 > Per-inventory delivery listing is available via
 > `GET /api/v1/material-inventories/:id/deliveries` (documented above).
+
+---
+
+## Needs
+
+Pre-funnel purchase stage: a buyer identifies materials, collects vendor
+quotations and, once everything is settled, **promotes** the need so the
+requester can create the formal Purchase Requisition (Nota de Pedido) in the
+external workflow system. Base: `/api/v1/needs`.
+
+A need has a server-generated correlative `number` (`NEED-YYYY-NNNN`) and moves
+through a controlled status lifecycle:
+
+```
+IN_PROGRESS ──promote──► READY ──mark-converted──► CONVERTED
+     │                     │
+     └──────discard────────┴───► DISCARDED   (discard allowed from any state
+                                              except CONVERTED)
+```
+
+- `IN_PROGRESS` — being edited; the **only** state in which items can be added.
+- `READY` — promoted, awaiting PR creation in the external system. Sets `promoted_at`.
+- `CONVERTED` — external system confirmed the PR was created. Sets `converted_at`.
+- `DISCARDED` — abandoned; also sets `is_active = false`.
+
+> Out of scope in this iteration: attachments, outbound webhook on promote, and
+> authentication. `requester_name`, `buyer_name` and `cost_center` are free-text
+> (Quinar has no users/cost-center domains yet).
+
+### `POST /api/v1/needs`
+Create a need. `number` and `status` are managed server-side and must not be
+sent.
+
+**Request body**
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `requester_name` | string | **yes** | rejected if empty |
+| `buyer_name` | string | **yes** | rejected if empty |
+| `cost_center` | string | no | |
+| `justification` | string | no | |
+| `required_date` | string | no | RFC3339 or `YYYY-MM-DD` |
+
+```json
+{
+  "requester_name": "Horacio",
+  "buyer_name": "Matias",
+  "cost_center": "CC-100",
+  "justification": "Stock for site B",
+  "required_date": "2026-07-01"
+}
+```
+**Response** `201` → `NeedResponse`:
+```json
+{
+  "ok": true,
+  "data": {
+    "id": "uuid",
+    "number": "NEED-2026-0001",
+    "requester_name": "Horacio",
+    "buyer_name": "Matias",
+    "cost_center": "CC-100",
+    "justification": "Stock for site B",
+    "required_date": "2026-07-01T00:00:00Z",
+    "status": "IN_PROGRESS",
+    "is_active": true,
+    "items": [],
+    "created_at": "...",
+    "updated_at": "..."
+  }
+}
+```
+`promoted_at` / `converted_at` / `required_date` are omitted while null. `items`
+is included (embedded) when the need is read by id or listed.
+Errors (`400`): `requester_name is required`, `buyer_name is required`,
+`invalid required_date format`.
+
+### `GET /api/v1/needs`
+List all needs (items embedded) → `{ "ok": true, "data": [ NeedResponse, ... ] }`.
+
+### `GET /api/v1/needs/:id`
+Get a need by UUID, with its `items` embedded. `400` invalid UUID, `404` not found.
+
+### `PUT /api/v1/needs/:id`
+Update the editable fields of a need. `number` and `status` cannot be changed
+here (use the transition actions for status). `requester_name` and `buyer_name`
+are required.
+| Field | Type | Notes |
+|-------|------|-------|
+| `requester_name` | string | required |
+| `buyer_name` | string | required |
+| `cost_center` | string | |
+| `justification` | string | |
+| `required_date` | string | RFC3339 or `YYYY-MM-DD`; only applied if provided |
+
+**Response** `200` → updated `NeedResponse`.
+
+### `POST /api/v1/needs/:id/promote`
+Transition `IN_PROGRESS → READY`. Requires **at least one item**; sets
+`promoted_at`. **Response** `200` → `NeedResponse`.
+Errors (`400`): `only needs in IN_PROGRESS can be promoted`,
+`a need must have at least one item to be promoted`.
+
+### `POST /api/v1/needs/:id/mark-converted`
+Transition `READY → CONVERTED`. Sets `converted_at`. **Response** `200` →
+`NeedResponse`. Error (`400`): `only needs in READY can be marked as converted`.
+
+### `POST /api/v1/needs/:id/discard`
+Transition any state **except** `CONVERTED` → `DISCARDED` (also sets
+`is_active = false`). **Response** `200` → `NeedResponse`. Error (`400`):
+`a converted need cannot be discarded`.
+
+---
+
+### Need Items
+
+Line items belong to a need. They can only be added while the parent need is
+`IN_PROGRESS`.
+
+#### `GET /api/v1/needs/:id/items`
+List the items of a need → array of `NeedItemResponse`.
+
+#### `POST /api/v1/needs/:id/items`
+Add an item to a need.
+
+**Request body**
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `material_id` | UUID string | **yes** | material must exist and be active |
+| `quantity` | number | **yes** | must be `> 0` |
+| `unit` | string | **yes** | |
+| `selected_cost_id` | UUID string | no | reference to a registered `MaterialCost` |
+| `notes` | string | no | |
+
+```json
+{ "material_id": "uuid", "quantity": 50, "unit": "meter", "notes": "main run" }
+```
+**Response** `201` → `NeedItemResponse`:
+```json
+{
+  "ok": true,
+  "data": {
+    "id": "uuid",
+    "need_id": "uuid",
+    "material_id": "uuid",
+    "material_name": "Cable 2.5mm",
+    "material_erp_code": "0 MAT GOP21",
+    "quantity": 50,
+    "unit": "meter",
+    "notes": "main run",
+    "created_at": "...",
+    "updated_at": "..."
+  }
+}
+```
+`material_name` and `material_erp_code` are denormalized so the client can
+render without a second round-trip. `selected_cost_id` is omitted when null.
+Errors (`400`): `invalid material_id`, `material not found`, `material is
+inactive`, `quantity must be greater than zero`, `unit is required`,
+`items can only be added to a need in IN_PROGRESS`.
+
+#### `PUT /api/v1/needs/items/:itemId`
+Update an item line. `quantity` and `unit` are always required; `material_id`
+and `selected_cost_id` are only overwritten when provided (omitting them keeps
+the current values).
+```json
+{ "quantity": 7, "unit": "meter", "notes": "updated" }
+```
+**Response** `200` → `NeedItemResponse`.
+
+#### `DELETE /api/v1/needs/items/:itemId`
+Permanently delete an item line (items are not soft-deleted). **Response**
+`204 No Content`.
 
 ---
 
