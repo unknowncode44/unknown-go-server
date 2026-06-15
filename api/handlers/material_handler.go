@@ -5,6 +5,8 @@ package handlers
 // invoke the service layer, and format responses.
 
 import (
+	"net/url"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/unknowncode44/unknown-go-server/api/presenter"
@@ -73,7 +75,13 @@ func (h *MaterialHandler) GetAll(c *fiber.Ctx) error {
 
 // GetMaterialsByERP handles GET /materials and returns the list of materials that matchs erpCode provided.
 func (h *MaterialHandler) GetMaterialsByERP(c *fiber.Ctx) error {
-	erpCode := c.Params("erp_code")
+	// Fiber's default config does not unescape path params, so decode it here:
+	// real Bejerman "bag" ERP codes contain spaces (e.g. "0 MAT GOP21") that
+	// the client must percent-encode (".../by-erp/0%20MAT%20GOP21").
+	erpCode, err := url.PathUnescape(c.Params("erp_code"))
+	if err != nil {
+		return respondError(c, fiber.StatusBadRequest, "Invalid erp_code")
+	}
 	if erpCode == "" {
 		return respondError(c, fiber.StatusBadRequest, "Invalid request body")
 	}

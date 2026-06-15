@@ -144,6 +144,11 @@ single object: some Bejerman "bag" codes (e.g. `0 MAT GOP21`) group many
 distinct materials under the same ERP code. **Response** `200` →
 `{ "ok": true, "data": [ MaterialResponse, ... ] }` (empty array if none match).
 
+ERP codes that contain spaces or other reserved characters must be
+**percent-encoded** by the client (e.g. `0 MAT GOP21` →
+`GET /api/v1/materials/by-erp/0%20MAT%20GOP21`); the handler URL-decodes the
+path segment before querying.
+
 > Note: this route uses a distinctive `by-erp/` prefix so it does not collide
 > with `GET /materials/:id` (in Fiber the first matching single-segment pattern
 > would otherwise win).
