@@ -45,7 +45,10 @@ func (s *service) Create(a *entities.Asset) (*entities.Asset, error) {
 	if !mat.IsActive {
 		return nil, errors.New("material is inactive")
 	}
-	code := strings.TrimSpace(mat.InternalCode)
+	if mat.InternalCode == nil {
+		return nil, errors.New("material internal code is empty")
+	}
+	code := strings.TrimSpace(*mat.InternalCode)
 	if code == "" {
 		return nil, errors.New("material internal code is empty")
 	}
