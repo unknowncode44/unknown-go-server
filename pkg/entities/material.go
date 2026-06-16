@@ -17,7 +17,7 @@ type Material struct {
 	Sector        string    `gorm:"size:100;not null"`
 	UnitOfMeasure string    `gorm:"size:50;not null"`
 	ERPCode       string    `gorm:"column:erp_code;index"`
-	InternalCode  string    `gorm:"column:internal_code;uniqueIndex"`
+	InternalCode  *string   `gorm:"column:internal_code;uniqueIndex"`
 	Code          string    `gorm:"size:50;uniqueIndex;not null"`
 	IsActive      bool      `gorm:"default:true;not null"`
 	CreatedAt     time.Time

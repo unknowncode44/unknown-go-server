@@ -39,11 +39,18 @@ func (h *MaterialHandler) Create(c *fiber.Ctx) error {
 		return respondError(c, fiber.StatusBadRequest, "Invalid request body")
 	}
 
+	// internal_code is optional and uniquely indexed: store empty as NULL so
+	// multiple materials without an internal code don't collide on the index.
+	var internalCode *string
+	if req.InternalCode != "" {
+		internalCode = &req.InternalCode
+	}
+
 	materialEntity := &entities.Material{
 		Name:          req.Name,
 		Sector:        req.Sector,
 		UnitOfMeasure: req.UnitOfMeasure,
-		InternalCode:  req.InternalCode,
+		InternalCode:  internalCode,
 		ERPCode:       req.ERPCode,
 		Code:          req.Code,
 	}
