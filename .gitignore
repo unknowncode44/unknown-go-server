@@ -5,3 +5,6 @@ config.yaml
 
 # Ignore debug binaries
 __debug_*
+
+# Claude
+.claude
