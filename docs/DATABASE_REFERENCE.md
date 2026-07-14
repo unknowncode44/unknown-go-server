@@ -74,9 +74,12 @@ Each relationship in §4 is tagged as **[FK constraint]** or
 | 10 | `material_inventories` | `MaterialInventory` | uuid | Bulk (non-serialized) stock header per material |
 | 11 | `delivery_records` | `DeliveryRecord` | uuid | Inbound/outbound quantity vs. an inventory |
 | 12 | `purchase_order_syncs` | `PurchaseOrderSync` | **bigint** | Imported purchase-order rows (Excel/VBA) |
+| 13 | `users` | `User` | uuid | System account (auth + roles) |
 
-> All 12 entities (tables 1–12) are registered in the `AutoMigrate(...)` call
+> All 13 entities are registered in the `AutoMigrate(...)` call
 > in `db/postgres.go` and are auto-created at startup.
+> (`needs` / `need_items` / `need_counters` are also migrated; see the Need
+> domain entities in `pkg/entities/`.)
 
 ---
 
@@ -262,6 +265,20 @@ to catalog data. **Integer PK.**
 | `material_id` | MaterialID | uuid? | IX, FK → `materials` **[app-level ref]** | null until linked |
 | `vendor_id` | VendorID | uuid? | IX, FK → `vendors` **[app-level ref]** | null until linked |
 
+### 3.13 `users`
+System accounts with API access (email/password login, JWT, roles). No
+relationships to other tables.
+| Column | Go field | Type | Constraints | Notes |
+|--------|----------|------|-------------|-------|
+| `id` | ID | uuid | PK, default `uuid_generate_v4()` | |
+| `name` | Name | varchar(255) | NN | |
+| `email` | Email | varchar(255) | UQ, NN | login identifier; not editable via API |
+| `password_hash` | PasswordHash | varchar(255) | NN | bcrypt hash; never returned by the API |
+| `role` | Role | varchar(20) | NN, default `'USER'` | `ADMIN` / `USER` / `OPERATIVE_USER` (app-level enum) |
+| `is_active` | IsActive | boolean | NN, default `true` | soft-delete flag |
+| `created_at` | CreatedAt | timestamptz | | |
+| `updated_at` | UpdatedAt | timestamptz | | |
+
 ---
 
 ## 4. Relationships
@@ -378,6 +395,13 @@ DB-level CHECK constraints; valid values are enforced **(app-level)**.
 | `INBOUND` | quantity in |
 | `OUTBOUND` | quantity out |
 
+**`UserRole`** — `users.role`
+| Value | Meaning |
+|-------|---------|
+| `ADMIN` | manages locations (warehouses/sectors/shelves) and users |
+| `USER` | manages materials / Bienes de Cambio |
+| `OPERATIVE_USER` | manages assets / Bienes de Uso (BDU) |
+
 ---
 
 ## 6. Behavioral / integrity rules (enforced in application code)
@@ -407,6 +431,11 @@ uphold them manually, and an agent reading data should expect them:
    `material_costs`, `asset_serial_counters`, `purchase_order_syncs`): there is
    no DB FK, so the service layer must ensure referenced rows exist. Orphans
    are possible if code bypasses the services.
+7. **Users.** Passwords are stored only as bcrypt hashes; email is unique and
+   not editable via the API. The last active `ADMIN` cannot be deactivated
+   (app-level guard). On startup, `SeedInitialAdmin` inserts the first `ADMIN`
+   from `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` env vars if no active admin
+   exists.
 
 ---
 

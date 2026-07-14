@@ -12,6 +12,7 @@ import (
 	database "github.com/unknowncode44/unknown-go-server/db"
 	"github.com/unknowncode44/unknown-go-server/pkg/asset"
 	"github.com/unknowncode44/unknown-go-server/pkg/asset_movement"
+	"github.com/unknowncode44/unknown-go-server/pkg/auth"
 	"github.com/unknowncode44/unknown-go-server/pkg/currency"
 	"github.com/unknowncode44/unknown-go-server/pkg/delivery_record"
 	"github.com/unknowncode44/unknown-go-server/pkg/location"
@@ -20,6 +21,7 @@ import (
 	"github.com/unknowncode44/unknown-go-server/pkg/material_inventory"
 	"github.com/unknowncode44/unknown-go-server/pkg/need"
 	"github.com/unknowncode44/unknown-go-server/pkg/sync_purchase_order"
+	"github.com/unknowncode44/unknown-go-server/pkg/user"
 	"github.com/unknowncode44/unknown-go-server/pkg/vendor"
 	"github.com/unknowncode44/unknown-go-server/pkg/vendor_material"
 )
@@ -108,8 +110,23 @@ func NewFiberServer(conf *config.Config, db database.Database) Server {
 	spoService := sync_purchase_order.NewService(spoRepo, materialRepo, vendorRepo)
 	spoHandler := handlers.NewSyncOrderHandler(spoService)
 
+	// User / Auth
+	userRepo := user.NewRepo(db.GetDb())
+	userService := user.NewService(userRepo)
+	userHandler := handlers.NewUserHandler(userService)
+	authHandler := handlers.NewAuthHandler(userService)
+
 	// global api route
 	api := fiberApp.Group("/api/v1")
+
+	// rutas de autenticación: /auth/login es pública (puerta de entrada),
+	// /auth/me exige token propio (ver auth_routes.go). Se registran ANTES
+	// del middleware global para que el login no exija token.
+	routes.AuthRoutes(api, authHandler)
+
+	// a partir de acá, todas las rutas /api/v1/* registradas debajo exigen
+	// un Bearer token válido (las /public/* quedan afuera del grupo)
+	api.Use(auth.RequireAuth())
 
 	// routes.CompanyRouter(api, companyService)
 	routes.MaterialRoutes(api, materialHandler)
@@ -127,6 +144,8 @@ func NewFiberServer(conf *config.Config, db database.Database) Server {
 	routes.DeliveryRecordRoutes(api, drHandler)
 	routes.DeliveryRecordByInventoryRoutes(api, miHandler)
 	routes.NeedRoutes(api, needHandler)
+	// gestión de usuarios: solo ADMIN (ver user_routes.go)
+	routes.UserRoutes(api, userHandler)
 
 	// public routes
 	public := fiberApp.Group("/public")

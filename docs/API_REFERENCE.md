@@ -19,6 +19,21 @@ For the domain model and architecture, see
   `http://localhost:4045`.
 - **CORS:** enabled for all origins.
 
+### Authentication
+All `/api/v1/*` routes require a JWT in the `Authorization: Bearer <token>`
+header, obtained from `POST /api/v1/auth/login`. Exceptions that stay public:
+`POST /api/v1/auth/login`, `GET /api/v1/health`, and everything under
+`/public/*`.
+
+Role-restricted routes (on top of being logged in):
+- `/api/v1/locations/*` — **ADMIN** only.
+- `/api/v1/users/*` — **ADMIN** only.
+- All other domains only require a valid token (fine-grained
+  `OPERATIVE_USER` permissions over assets are pending, not implemented).
+
+Missing/invalid/expired token → `401` `{ "success": false, "error": "..." }`.
+Valid token but insufficient role → `403`.
+
 ### Response envelopes
 The API uses two different envelope shapes — note the **key inconsistency**
 between success and error responses:
@@ -46,7 +61,10 @@ boolean flag:
 | `201 Created` | Resource created |
 | `204 No Content` | Successful deactivate/delete (empty body) |
 | `400 Bad Request` | Invalid body, invalid UUID, missing/invalid field |
+| `401 Unauthorized` | Missing/invalid/expired token, or bad login credentials |
+| `403 Forbidden` | Valid token but the role lacks permission |
 | `404 Not Found` | Resource not found |
+| `409 Conflict` | Business guard (e.g. deactivating the last active admin) |
 | `500 Internal Server Error` | Unexpected/persistence error |
 
 ### Data formats
@@ -60,6 +78,8 @@ boolean flag:
 | Resource | Base | Methods |
 |----------|------|---------|
 | Health | `/api/v1/health` | GET |
+| Auth | `/api/v1/auth` | POST(login), GET(me) |
+| Users (ADMIN) | `/api/v1/users` | POST, GET, PUT, DELETE |
 | Materials | `/api/v1/materials` | POST, GET, PUT, DELETE |
 | Vendors | `/api/v1/vendors` | POST, GET, PUT, DELETE |
 | Vendor-Materials | `/api/v1/vendor-materials` | POST, GET, PUT, DELETE |
@@ -79,9 +99,92 @@ boolean flag:
 ## Health
 
 ### `GET /api/v1/health`
-Liveness check.
+Liveness check. Public (no token).
 
 - **Response:** `200 OK`, plain text body `Working Cool!` (not JSON).
+
+---
+
+## Auth
+
+Base: `/api/v1/auth`
+
+### `POST /api/v1/auth/login`
+Public. Exchanges email/password for a signed JWT (HS256, expiry configured by
+`auth.jwt_expiry_hours`, default 12 h). Inactive users cannot log in.
+
+**Request body**
+| Field | Type | Required |
+|-------|------|----------|
+| `email` | string | **yes** |
+| `password` | string | **yes** |
+
+**Response** `200 OK`
+```json
+{
+  "ok": true,
+  "data": {
+    "token": "<jwt>",
+    "user": {
+      "id": "uuid",
+      "name": "Admin",
+      "email": "admin@example.com",
+      "role": "ADMIN",
+      "is_active": true
+    }
+  }
+}
+```
+
+`401` with a generic `"credenciales inválidas"` on unknown email, inactive
+user or wrong password (no distinction, to avoid user enumeration).
+
+### `GET /api/v1/auth/me`
+Requires token. Returns the claims carried by the token (no DB hit) —
+`{ "ok": true, "data": { "id", "email", "role" } }`. Note the role reflects
+the token, so a role change only shows after the next login.
+
+---
+
+## Users
+
+Base: `/api/v1/users` — **all routes require role `ADMIN`**.
+
+`UserResponse` shape: `{ "id", "name", "email", "role", "is_active" }` — the
+password hash is never returned.
+
+### `POST /api/v1/users`
+Create a user.
+
+**Request body**
+| Field | Type | Required | Notes |
+|-------|------|----------|-------|
+| `name` | string | **yes** | |
+| `email` | string | **yes** | must be unique |
+| `password` | string | **yes** | min 8 characters |
+| `role` | string | **yes** | `ADMIN`, `USER` or `OPERATIVE_USER` |
+
+**Response** `201 Created` → `{ "ok": true, "data": UserResponse }`.
+`400` on validation errors (short password, invalid role, duplicate email).
+
+### `GET /api/v1/users`
+List all users. **Response** `200` → `{ "ok": true, "data": [ UserResponse ] }`.
+
+### `GET /api/v1/users/:id`
+Get a user by UUID. `400` invalid UUID, `404` not found.
+
+### `PUT /api/v1/users/:id`
+Update `name` and/or `role` only (email is not editable; password has its own
+endpoint). At least one field required.
+**Response** `200` → `{ "ok": true, "data": UserResponse }`.
+
+### `PUT /api/v1/users/:id/password`
+Admin password reset (no email flow). Body: `{ "password": "..." }`
+(min 8 chars). **Response** `204 No Content`.
+
+### `DELETE /api/v1/users/:id`
+Logical delete (`is_active = false`, idempotent). **Response** `204`.
+`409 Conflict` when trying to deactivate the **last active ADMIN**.
 
 ---
 
