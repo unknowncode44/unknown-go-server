@@ -11,6 +11,7 @@ type (
 	Config struct {
 		Server *Server
 		Db     *Db
+		Auth   *Auth
 	}
 
 	Server struct {
@@ -24,6 +25,14 @@ type (
 		Password string
 		DBName   string
 		TimeZone string
+	}
+
+	// Auth agrupa la configuración de JWT. En producción el secreto se
+	// setea vía la variable de entorno AUTH_JWT_SECRET (Viper mapea
+	// auth.jwt_secret <-> AUTH_JWT_SECRET por el EnvKeyReplacer de abajo).
+	Auth struct {
+		JWTSecret      string `mapstructure:"jwt_secret"`
+		JWTExpiryHours int    `mapstructure:"jwt_expiry_hours"`
 	}
 )
 

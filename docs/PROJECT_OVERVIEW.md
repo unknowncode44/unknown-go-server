@@ -28,6 +28,8 @@ operational data of a service/installation company:
   tracking for materials measured by quantity, with inbound/outbound deliveries.
 - **Purchase Order Sync** — ingestion endpoint that receives purchase-order
   rows (e.g. from an Excel/VBA macro) and links them to materials and vendors.
+- **Users & Auth** — system accounts with email/password login (bcrypt),
+  JWT-based authentication and 3 roles (`ADMIN`, `USER`, `OPERATIVE_USER`).
 
 The system is the backend half of an internal tool; the configured database is
 named `quinar`.
@@ -103,6 +105,17 @@ HTTP request
   auto-increment integer.
 - **Singletons** — both config and the DB connection use `sync.Once` to ensure
   a single instance per process.
+- **Authentication middleware** — `pkg/auth` provides `RequireAuth()` (valid
+  HS256 JWT in `Authorization: Bearer <token>`, claims injected into
+  `fiber.Locals`) and `RequireRole(roles...)`. In `server/fiberServer.go` the
+  auth routes (`/auth/login` public, `/auth/me`) are registered first, then
+  `api.Use(auth.RequireAuth())` protects every `/api/v1/*` route registered
+  after it. `/locations` and `/users` additionally require the `ADMIN` role;
+  `/public/*` routes and the health check stay unauthenticated. The role
+  travels inside the token, so a role change only applies on the next login.
+  On first boot, `SeedInitialAdmin` creates the first `ADMIN` account from the
+  `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` env vars (idempotent no-op once
+  an active admin exists).
 
 ---
 
@@ -116,6 +129,7 @@ HTTP request
 | Database | **PostgreSQL** (`gorm.io/driver/postgres`, pgx driver) |
 | Config | **Viper** (`github.com/spf13/viper`) — YAML file + env overrides |
 | UUIDs | `github.com/google/uuid` + Postgres `uuid-ossp` extension |
+| Auth | **JWT HS256** (`github.com/golang-jwt/jwt/v5`) + **bcrypt** (`golang.org/x/crypto/bcrypt`) |
 | Errors | `github.com/pkg/errors` |
 | Module path | `github.com/unknowncode44/unknown-go-server` |
 
@@ -239,6 +253,16 @@ are common bookkeeping fields. Monetary/quantity values use `numeric(15,4)`.
 | Quantity | numeric(15,4) | not null |
 | DeliveryDate | timestamp | indexed |
 | Notes | text? | optional |
+
+**User** — a system account with access to the API (auth + roles).
+| Field | Type | Notes |
+|-------|------|-------|
+| ID | uuid | PK |
+| Name | varchar(255) | not null |
+| Email | varchar(255) | unique, not null — login identifier |
+| PasswordHash | varchar(255) | bcrypt hash; never exposed by the API |
+| Role | varchar(20) | `ADMIN` / `USER` / `OPERATIVE_USER` (default `USER`) |
+| IsActive | bool | soft-delete flag; the last active `ADMIN` cannot be deactivated |
 
 **PurchaseOrderSync** — raw purchase-order rows ingested from an external source (Excel/VBA), later linked to a material/vendor.
 | Field | Type | Notes |
@@ -369,7 +393,18 @@ db:
   password: <password>
   dbname: quinar
   timezone: america/buenos_aires
+auth:
+  jwt_secret: <long-random-secret>   # in production set via env var AUTH_JWT_SECRET
+  jwt_expiry_hours: 12
 ```
+
+Auth-related environment variables:
+
+- `AUTH_JWT_SECRET` — overrides `auth.jwt_secret` (Viper maps `.` → `_`).
+  **Never commit the real secret.**
+- `SEED_ADMIN_EMAIL` / `SEED_ADMIN_PASSWORD` — export at least once before the
+  first start on a fresh database so the initial `ADMIN` gets created (the
+  seed is an idempotent no-op once an active admin exists).
 
 Run from the entry point package:
 
@@ -400,7 +435,9 @@ pkg/
                         (material, vendor, vendor_material, currency,
                          material_cost, asset, asset_movement, location,
                          material_inventory, delivery_record,
-                         sync_purchase_order)
+                         sync_purchase_order, user)
+  auth/               → JWT generation/validation + RequireAuth/RequireRole
+                        middlewares (no repository/entity of its own)
 docs/                 → this overview
 README.MD             → Material module notes
 README_ASSET_CYCLE.md → asset movement cycle guide

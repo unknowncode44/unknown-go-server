@@ -9,3 +9,8 @@ db:
   dbname: quinar
   # sslmode: disable
   timezone: america/buenos_aires
+
+auth:
+  # en produccion setear via env var AUTH_JWT_SECRET, no committear el secreto real
+  jwt_secret: "REEMPLAZAR_EN_PRODUCCION_CON_UN_SECRETO_LARGO_Y_RANDOM"
+  jwt_expiry_hours: 12
