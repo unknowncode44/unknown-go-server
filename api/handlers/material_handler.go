@@ -168,7 +168,9 @@ func (h *MaterialHandler) Update(c *fiber.Ctx) error {
 
 	updated, err := h.service.Update(mat)
 	if err != nil {
-		return respondError(c, fiber.StatusInternalServerError, "Material was not updated due to an internal server error")
+		// Devolvemos el error tal cual, igual que en Create: los errores de
+		// validación del servicio (ej. group inválido) deben llegar como 400.
+		return respondError(c, fiber.StatusBadRequest, err.Error())
 	}
 
 	return c.JSON(presenter.MaterialSuccessResponse{

@@ -9,6 +9,64 @@ top. Each entry records what changed, why, and any verification performed.
 
 ---
 
+## 2026-07-16 — Material `group` (BDC/BDU) + `SOLD` asset-movement type
+
+**Branch / PR:** `feature/material-group-sold` → merged into
+`quinar_main_branch` via PR #27 (merge `7baa431`; source commit `dcc3cc6`).
+
+### Changes
+- **feat (entities):** new `MaterialGroup` enum (`BDC` = Bienes de Cambio,
+  `BDU` = Bienes de Uso) and `Group` field on `Material`
+  (`pkg/entities/material.go`), column `material_group` (explicit name —
+  `group` is reserved in SQL) `varchar(10) NOT NULL DEFAULT 'BDC'`. The DB
+  default lets `AutoMigrate` add the NOT NULL column over the ~203 existing
+  rows without failing. Replaces the informal `"EQUIPOS BDC"/"EQUIPOS BDU"`
+  workaround in `Sector`; the group is explicit because BDC can be bulk **or**
+  serialized, so it can't be inferred from having `Asset`s.
+- **feat (pkg/material):** `Create` validates `Group` ∈ {BDC, BDU} ("material
+  group must be BDC or BDU"); the same guard runs in `Update`.
+  `material_group` added to the repository `Updates(...)` map.
+- **feat (api):** `group` field in `CreateMaterialRequest`,
+  `UpdateMaterialRequest` and `MaterialResponse`
+  (`api/presenter/material_presenter.go`); handler maps it on create and
+  applies it on update (`if req.Group != ""`), and `group` counts toward the
+  "at least one field provided" guard so a PUT with only `{"group": ...}` is
+  valid (needed for the backfill).
+- **feat (asset movements):** new `AssetMovementSold = "SOLD"` type
+  (`pkg/entities/asset_movement.go`) for selling a serialized BDC asset to an
+  end client. In `CreateWithAssetUpdate` it shares the
+  `DECOMMISSION`/`SCRAP` case: asset → `RETIRED`, `is_active=false`, location
+  = `to_location_id`. No new `AssetStatus`; the reason lives in the movement
+  history.
+- **docs:** DATABASE_REFERENCE (`material_group` column, `MaterialGroup` enum,
+  `SOLD` value), API_REFERENCE (`group` in Material payloads, `SOLD` in
+  movement types), README_ASSET_CYCLE (type list).
+
+### Verification
+| Check | Result |
+|-------|--------|
+| `go build ./...` / `go vet ./...` | ✅ exit 0 |
+| Post-deploy VPS: `GET /materials` | ✅ 203 materiales, todos con `"group"` (AutoMigrate agregó la columna con default) |
+| `POST /materials` sin `group` | ✅ 400 `"material group must be BDC or BDU"` |
+| `POST /materials` con `group:"BDC"` | ✅ 201 con `"group":"BDC"` en la respuesta (material de prueba desactivado después) |
+| `PUT` con `group` inválido (`"XXX"`) | ✅ rechazado (no persiste) |
+| Backfill: `PUT {"group":"BDU"}` a `C050940M701A`, `ARU_R2W96A`, `AF5XHD`, `IAG3` | ✅ 200 c/u; `GET /materials` final: 199 activos BDC + 4 BDU + 1 test inactivo |
+| `SOLD` end-to-end (asset de prueba `VRFSLD-0001`: `INBOUND` → `SOLD`) | ✅ 200; asset quedó `RETIRED`, `is_active=false`, location = destino |
+| Movimiento sobre asset ya `RETIRED` (post-`SOLD`) | ✅ rechazado (`invalid transaction`) |
+
+### Notes / follow-ups (not blocking)
+- Test data soft-deleted in prod DB from the verification: materials
+  `VERIF-BDC-001` (`__VERIF_TEST_BDC`) and `VERIF-SOLD-001`
+  (`__VERIF_TEST_SOLD`, with its retired test asset `VRFSLD-0001` and its
+  `INBOUND`/`SOLD` movement history). All inactive; harmless but deletable by
+  hand if desired.
+- Found during verification: handler `Update` mapped every service error to a
+  generic 500; an invalid `group` should surface as 400 with the service
+  message, same as `Create`. Fixed in `fix/material-update-error-status`
+  (entry pending merge).
+
+---
+
 ## 2026-07-14 — Auth module: JWT login, users domain, role-based access
 
 **Branch / PR:** `feature/auth-roles` → merged into `quinar_main_branch` via
