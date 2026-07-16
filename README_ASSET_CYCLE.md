@@ -27,7 +27,7 @@ This document explains the end-to-end cycle for turning a Material into an Asset
 - Material creation requires: `name`, `sector`, `unitOfMeasure`, `code`.
 - Location creation requires: `name`, `type`.
 - Asset creation requires: `material_id` (UUID) and the material must be active with a non-empty `internalCode`.
-- AssetMovement creation requires: `asset_id` (UUID), `type` (one of `INBOUND`, `TRANSFER`, `INSTALL`, `UNINSTALL`, `REPAIR`, `RETURN`, `DECOMMISSION`, `SCRAP`), and `movement_date` (RFC3339 or `YYYY-MM-DD`).
+- AssetMovement creation requires: `asset_id` (UUID), `type` (one of `INBOUND`, `TRANSFER`, `INSTALL`, `UNINSTALL`, `REPAIR`, `RETURN`, `DECOMMISSION`, `SCRAP`, `SOLD`), and `movement_date` (RFC3339 or `YYYY-MM-DD`).
 - First movement for an asset must be `INBOUND`.
 
 ## Example payloads

@@ -93,7 +93,7 @@ func (r *repository) CreateWithAssetUpdate(am *entities.AssetMovement) (*entitie
 	case entities.AssetMovementReturn:
 		asset.Status = entities.AssetStatusInStock
 		asset.CurrentLocationID = am.ToLocationID
-	case entities.AssetMovementDecommission, entities.AssetMovementScrap:
+	case entities.AssetMovementDecommission, entities.AssetMovementScrap, entities.AssetMovementSold:
 		asset.Status = entities.AssetStatusRetired
 		asset.IsActive = false
 		asset.CurrentLocationID = am.ToLocationID

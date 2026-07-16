@@ -48,6 +48,9 @@ func (s *service) Create(material *entities.Material) (*entities.Material, error
 	if strings.TrimSpace(material.UnitOfMeasure) == "" {
 		return nil, errors.New("unit of measure is required")
 	}
+	if material.Group != entities.MaterialGroupBDC && material.Group != entities.MaterialGroupBDU {
+		return nil, errors.New("material group must be BDC or BDU")
+	}
 	material.Code = strings.TrimSpace(material.Code)
 	if material.Code == "" {
 		return nil, errors.New("material code is required")
@@ -86,6 +89,9 @@ func (s *service) Update(material *entities.Material) (*entities.Material, error
 	}
 	if strings.TrimSpace(material.Name) == "" {
 		return nil, errors.New("material name is required")
+	}
+	if material.Group != entities.MaterialGroupBDC && material.Group != entities.MaterialGroupBDU {
+		return nil, errors.New("material group must be BDC or BDU")
 	}
 	return s.repo.Update(material)
 }

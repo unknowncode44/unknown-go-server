@@ -11,6 +11,7 @@ import (
 type CreateMaterialRequest struct {
 	Name          string `json:"name"`
 	Sector        string `json:"sector"`
+	Group         string `json:"group"`
 	UnitOfMeasure string `json:"unitOfMeasure"`
 	ERPCode       string `json:"erpCode"`
 	InternalCode  string `json:"internalCode"`
@@ -22,6 +23,7 @@ type CreateMaterialRequest struct {
 type UpdateMaterialRequest struct {
 	Name          string `json:"name"`
 	Sector        string `json:"sector"`
+	Group         string `json:"group"`
 	UnitOfMeasure string `json:"unitOfMeasure"`
 	ERPCode       string `json:"erpCode"`
 	InternalCode  string `json:"internalCode"`
@@ -33,6 +35,7 @@ type MaterialResponse struct {
 	ID            string    `json:"id"`
 	Name          string    `json:"name"`
 	Sector        string    `json:"sector"`
+	Group         string    `json:"group"`
 	ERPCode       string    `json:"erpCode"`
 	InternalCode  string    `json:"internalCode"`
 	UnitOfMeasure string    `json:"unitOfMeasure"`
@@ -64,6 +67,7 @@ func ToMaterialResponse(m *entities.Material) MaterialResponse {
 		ID:            m.ID.String(),
 		Name:          m.Name,
 		Sector:        m.Sector,
+		Group:         string(m.Group),
 		ERPCode:       m.ERPCode,
 		InternalCode:  ptrToString(m.InternalCode),
 		UnitOfMeasure: m.UnitOfMeasure,
@@ -83,6 +87,7 @@ func ToMaterialListResponse(vendors []entities.Material) []MaterialResponse {
 			ID:            m.ID.String(),
 			Name:          m.Name,
 			Sector:        m.Sector,
+			Group:         string(m.Group),
 			ERPCode:       m.ERPCode,
 			InternalCode:  ptrToString(m.InternalCode),
 			UnitOfMeasure: m.UnitOfMeasure,

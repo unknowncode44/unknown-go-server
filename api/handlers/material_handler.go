@@ -49,6 +49,7 @@ func (h *MaterialHandler) Create(c *fiber.Ctx) error {
 	materialEntity := &entities.Material{
 		Name:          req.Name,
 		Sector:        req.Sector,
+		Group:         entities.MaterialGroup(req.Group),
 		UnitOfMeasure: req.UnitOfMeasure,
 		InternalCode:  internalCode,
 		ERPCode:       req.ERPCode,
@@ -136,7 +137,7 @@ func (h *MaterialHandler) Update(c *fiber.Ctx) error {
 	}
 
 	// require at least one field to update
-	if req.Name == "" && req.Sector == "" && req.UnitOfMeasure == "" && req.ERPCode == "" {
+	if req.Name == "" && req.Sector == "" && req.Group == "" && req.UnitOfMeasure == "" && req.ERPCode == "" {
 		return respondError(c, fiber.StatusBadRequest, "No fields provided for update")
 	}
 
@@ -151,6 +152,10 @@ func (h *MaterialHandler) Update(c *fiber.Ctx) error {
 
 	if req.Sector != "" {
 		mat.Sector = req.Sector
+	}
+
+	if req.Group != "" {
+		mat.Group = entities.MaterialGroup(req.Group)
 	}
 
 	if req.UnitOfMeasure != "" {

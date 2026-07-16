@@ -200,6 +200,7 @@ Create a material.
 |-------|------|----------|-------|
 | `name` | string | **yes** | rejected if empty |
 | `sector` | string | no | business sector |
+| `group` | string | **yes** | `BDC` (Bienes de Cambio) or `BDU` (Bienes de Uso); rejected otherwise |
 | `unitOfMeasure` | string | no | meter, unit, kg, … |
 | `erpCode` | string | no | external ERP code |
 | `internalCode` | string | no | required later to create Assets |
@@ -209,6 +210,7 @@ Create a material.
 {
   "name": "Steel Bolt M8",
   "sector": "Hardware",
+  "group": "BDC",
   "unitOfMeasure": "pcs",
   "erpCode": "ERP-12345",
   "internalCode": "INT-0001",
@@ -224,6 +226,7 @@ Create a material.
     "id": "uuid",
     "name": "Steel Bolt M8",
     "sector": "Hardware",
+    "group": "BDC",
     "erpCode": "ERP-12345",
     "internalCode": "INT-0001",
     "unitOfMeasure": "pcs",
@@ -257,12 +260,13 @@ path segment before querying.
 > would otherwise win).
 
 ### `PUT /api/v1/materials/:id`
-Update a material. At least one of `name`, `sector`, `unitOfMeasure`,
+Update a material. At least one of `name`, `sector`, `group`, `unitOfMeasure`,
 `erpCode` must be provided, otherwise `400 "No fields provided for update"`.
-(Only those four fields are applied by the handler.)
+(Only those five fields are applied by the handler.) If `group` is provided it
+must be `BDC` or `BDU`.
 
 ```json
-{ "name": "Steel Bolt M8 (zinc)", "sector": "Hardware", "unitOfMeasure": "pcs", "erpCode": "ERP-99999" }
+{ "name": "Steel Bolt M8 (zinc)", "sector": "Hardware", "group": "BDC", "unitOfMeasure": "pcs", "erpCode": "ERP-99999" }
 ```
 **Response** `200` → updated `MaterialResponse`.
 
@@ -634,7 +638,7 @@ Records a movement. Committed transactionally with the asset update. The
 | Field | Type | Required | Notes |
 |-------|------|----------|-------|
 | `asset_id` | UUID string | yes | |
-| `type` | string | yes | `INBOUND`, `TRANSFER`, `INSTALL`, `UNINSTALL`, `REPAIR`, `RETURN`, `DECOMMISSION`, `SCRAP` |
+| `type` | string | yes | `INBOUND`, `TRANSFER`, `INSTALL`, `UNINSTALL`, `REPAIR`, `RETURN`, `DECOMMISSION`, `SCRAP`, `SOLD` |
 | `from_location_id` | UUID string | no | |
 | `to_location_id` | UUID string | no | |
 | `movement_date` | string | yes | RFC3339 or `YYYY-MM-DD` |
