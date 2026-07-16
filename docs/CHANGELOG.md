@@ -9,6 +9,69 @@ top. Each entry records what changed, why, and any verification performed.
 
 ---
 
+## 2026-07-14 — Auth module: JWT login, users domain, role-based access
+
+**Branch / PR:** `feature/auth-roles` → merged into `quinar_main_branch` via
+PR #26 (merge `bfafff5`; source commit `b4b5cdd`).
+
+### Changes
+- **feat (entities/db):** new `User` entity (`pkg/entities/user.go`) with
+  unique email, bcrypt `password_hash`, `role`
+  (`ADMIN`/`USER`/`OPERATIVE_USER`) and `is_active`; registered in
+  `AutoMigrate` (`db/postgres.go`) → creates the `users` table.
+- **feat (pkg/user):** repository + service mirroring the `vendor` pattern,
+  plus `FindByEmail`, `CountActiveByRole`, `SetPassword`, `Authenticate`
+  (generic "credenciales inválidas" error to avoid user enumeration) and a
+  guard that refuses to deactivate the **last active ADMIN**
+  (`ErrLastActiveAdmin` → HTTP 409). `SeedInitialAdmin` creates the first
+  admin from `SEED_ADMIN_EMAIL`/`SEED_ADMIN_PASSWORD` env vars (idempotent),
+  called from `cmd/unknown-api/main.go`.
+- **feat (pkg/auth):** JWT HS256 generation/validation
+  (`github.com/golang-jwt/jwt/v5`, new dependency) + `RequireAuth()` and
+  `RequireRole()` Fiber middlewares. Role travels inside the token (a role
+  change applies on next login).
+- **feat (api):** presenters/handlers/routes for `POST /api/v1/auth/login`
+  (public), `GET /api/v1/auth/me`, and admin-only `/api/v1/users` CRUD +
+  `PUT /users/:id/password`. Password hash never exposed.
+- **feat (server):** in `fiberServer.go`, auth routes register first, then
+  `api.Use(auth.RequireAuth())` protects every `/api/v1/*` route registered
+  after it. `/locations` additionally requires `ADMIN`
+  (`api/routes/location_routes.go`). `/public/*` and `/api/v1/health` remain
+  public.
+- **feat (config):** new `auth` section (`jwt_secret`, `jwt_expiry_hours`) in
+  `config.yaml`/`config.go`; in production the secret is set via
+  `AUTH_JWT_SECRET`.
+- **docs:** PROJECT_OVERVIEW (architecture note, `users` table, env vars),
+  DATABASE_REFERENCE (§3.13 `users`, `UserRole` enum, integrity rule),
+  API_REFERENCE (auth conventions, 401/403/409, Auth & Users sections).
+
+### Verification
+| Check | Result |
+|-------|--------|
+| `go build ./...` / `go vet ./...` | ✅ exit 0 |
+| Server boot → `users` table migrated + initial admin seeded | ✅ |
+| `POST /auth/login` (seed admin) | ✅ 200 + token (local & VPS) |
+| `GET /materials` sin token | ✅ 401 (antes 200 público) |
+| `GET /materials` con token | ✅ 200 |
+| `GET /auth/me` | ✅ claims del token |
+| `POST /users` con admin (crear `OPERATIVE_USER`/`USER`) | ✅ 201 |
+| `POST /locations` / `GET /users` con token rol `USER` | ✅ 403 |
+| `DELETE /users/:id` del único admin activo | ✅ 409 con mensaje del guard |
+| `/public/sync/purchase-orders` y `/health` sin token | ✅ 200 |
+| Post-deploy en VPS (`https://api.quinar.hvdevs.com`) | ✅ misma matriz: 401 sin token, login OK, 200 con token |
+
+### Notes / follow-ups (not blocking)
+- Fine-grained `OPERATIVE_USER` permissions over `/assets` /
+  `/asset-movements` are **pending** (today those routes only require login) —
+  separate design task.
+- `SEED_ADMIN_EMAIL`/`SEED_ADMIN_PASSWORD` must be exported at least once on a
+  fresh DB; afterwards the seed is a no-op. `AUTH_JWT_SECRET` was set on the
+  VPS (the value in `config.yaml` is a placeholder).
+- No refresh tokens, email-based password recovery, rate limiting or public
+  signup — out of scope by design.
+
+---
+
 ## 2026-06-15 — Persist `erp_code` on material update
 
 **Branch / PR:** `fix_material_erp_update` → to be merged into
