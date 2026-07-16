@@ -1,16 +1,16 @@
 server:
-  port: 4045
+  port: YOUR_PORT
   
 db:
-  host: 149.50.128.86
-  port: 35000
-  user: user
-  password: password
-  dbname: quinar
-  # sslmode: disable
-  timezone: america/buenos_aires
+  host: YOUR_DB_HOST
+  port: YOUR_DB_PORT
+  user: YOUR_DB_USER
+  password: YOUR_DB_PASSWORD
+  dbname: YOUR_DB_NAME
+  # sslmode: disable / enabled 
+  timezone: YOUR_TIMEZONE
 
 auth:
   # en produccion setear via env var AUTH_JWT_SECRET, no committear el secreto real
-  jwt_secret: "REEMPLAZAR_EN_PRODUCCION_CON_UN_SECRETO_LARGO_Y_RANDOM"
+  jwt_secret: "INSERT_YOUR_RANDOM_GENERATED_SECRET"
   jwt_expiry_hours: 12
