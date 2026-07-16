@@ -9,3 +9,6 @@ __debug_*
 # Claude
 .claude
 
+# Local handoff/session notes
+HANDOFF_REPORT.md
+
