@@ -95,6 +95,7 @@ Column legend: **PK** = primary key, **FK** = participates in a relationship
 | `id` | ID | uuid | PK, default `uuid_generate_v4()` | |
 | `name` | Name | varchar(255) | NN | |
 | `sector` | Sector | varchar(100) | NN | business sector (electrical, RF…) |
+| `material_group` | Group | varchar(10) | NN, default `'BDC'` | business group: `BDC` (Bienes de Cambio) or `BDU` (Bienes de Uso); explicit column name because `group` is a reserved word in SQL |
 | `unit_of_measure` | UnitOfMeasure | varchar(50) | NN | meter, unit, kg… |
 | `erp_code` | ERPCode | text | IX | external ERP code |
 | `internal_code` | InternalCode | text | UQ | used to generate asset serials |
@@ -363,6 +364,12 @@ Format: `child.column → parent.table` — cardinality — kind.
 These are stored as strings (`varchar`) in the listed columns. There are **no**
 DB-level CHECK constraints; valid values are enforced **(app-level)**.
 
+**`MaterialGroup`** — `materials.material_group`
+| Value | Meaning |
+|-------|---------|
+| `BDC` | Bienes de Cambio — materials sold to / installed at clients (bulk or serialized) |
+| `BDU` | Bienes de Uso — Quinar's own infrastructure assets (always serialized) |
+
 **`AssetStatus`** — `assets.status`
 | Value | Meaning |
 |-------|---------|
@@ -382,6 +389,7 @@ DB-level CHECK constraints; valid values are enforced **(app-level)**.
 | `RETURN` | returned from repair |
 | `DECOMMISSION` | permanent retirement |
 | `SCRAP` | permanent retirement due to breakage/obsolescence |
+| `SOLD` | sale of a serialized BDC asset to an end client (same asset effect as `DECOMMISSION`/`SCRAP`: retired + inactive) |
 
 **`LocationType`** — `locations.type`
 | Value | Meaning |

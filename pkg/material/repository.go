@@ -83,6 +83,7 @@ func (r *repository) Update(material *entities.Material) (*entities.Material, er
 		Updates(map[string]interface{}{
 			"name":            material.Name,
 			"sector":          material.Sector,
+			"material_group":  material.Group,
 			"unit_of_measure": material.UnitOfMeasure,
 			"erp_code":        material.ERPCode,
 			"code":            material.Code,

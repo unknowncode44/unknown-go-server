@@ -17,6 +17,7 @@ const (
 	AssetMovementReturn       AssetMovementType = "RETURN"       // regreso de reparación
 	AssetMovementDecommission AssetMovementType = "DECOMMISSION" // baja definitiva
 	AssetMovementScrap        AssetMovementType = "SCRAP"        // baja definitiva por rotura o obsolescencia
+	AssetMovementSold         AssetMovementType = "SOLD"         // venta de BDC serializado a cliente final
 )
 
 type AssetMovement struct {
