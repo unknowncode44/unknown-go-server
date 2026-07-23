@@ -20,6 +20,7 @@ import (
 	"github.com/unknowncode44/unknown-go-server/pkg/material_cost"
 	"github.com/unknowncode44/unknown-go-server/pkg/material_inventory"
 	"github.com/unknowncode44/unknown-go-server/pkg/need"
+	"github.com/unknowncode44/unknown-go-server/pkg/shipment"
 	"github.com/unknowncode44/unknown-go-server/pkg/sync_purchase_order"
 	"github.com/unknowncode44/unknown-go-server/pkg/user"
 	"github.com/unknowncode44/unknown-go-server/pkg/vendor"
@@ -109,6 +110,11 @@ func NewFiberServer(conf *config.Config, db database.Database) Server {
 	needService := need.NewService(needRepo, materialRepo)
 	needHandler := handlers.NewNeedHandler(needService)
 
+	// Shipment (reusa asset/material/material_inventory/location services)
+	shipmentRepo := shipment.NewRepo(db.GetDb())
+	shipmentService := shipment.NewService(shipmentRepo, assetService, materialService, miService, locationService)
+	shipmentHandler := handlers.NewShipmentHandler(shipmentService)
+
 	// SyncPurchaseOrder
 	spoRepo := sync_purchase_order.NewRepo(db.GetDb())
 	spoService := sync_purchase_order.NewService(spoRepo, materialRepo, vendorRepo)
@@ -148,6 +154,7 @@ func NewFiberServer(conf *config.Config, db database.Database) Server {
 	routes.DeliveryRecordRoutes(api, drHandler)
 	routes.DeliveryRecordByInventoryRoutes(api, miHandler)
 	routes.NeedRoutes(api, needHandler)
+	routes.ShipmentRoutes(api, shipmentHandler)
 	// gestión de usuarios: solo ADMIN (ver user_routes.go)
 	routes.UserRoutes(api, userHandler)
 
