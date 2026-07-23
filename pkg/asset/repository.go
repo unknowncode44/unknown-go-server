@@ -17,6 +17,7 @@ type Repository interface {
 	FindAll() ([]entities.Asset, error)
 	FindByID(id uuid.UUID) (*entities.Asset, error)
 	FindBySerial(serial string) (*entities.Asset, error)
+	FindByLocationID(locationID uuid.UUID) ([]entities.Asset, error)
 	Update(a *entities.Asset) (*entities.Asset, error)
 }
 
@@ -111,6 +112,16 @@ func (r *repository) FindBySerial(serial string) (*entities.Asset, error) {
 		return nil, err
 	}
 	return &a, nil
+}
+
+// FindByLocationID returns all assets currently located at the given location.
+// Material is preloaded so callers can show the material name/code.
+func (r *repository) FindByLocationID(locationID uuid.UUID) ([]entities.Asset, error) {
+	var list []entities.Asset
+	if err := r.db.Preload("Material").Where("current_location_id = ?", locationID).Find(&list).Error; err != nil {
+		return nil, err
+	}
+	return list, nil
 }
 
 func (r *repository) Update(a *entities.Asset) (*entities.Asset, error) {

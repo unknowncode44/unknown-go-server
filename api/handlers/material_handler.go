@@ -10,19 +10,24 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/unknowncode44/unknown-go-server/api/presenter"
+	"github.com/unknowncode44/unknown-go-server/pkg/delivery_record"
 	"github.com/unknowncode44/unknown-go-server/pkg/entities"
 	"github.com/unknowncode44/unknown-go-server/pkg/material"
+	"github.com/unknowncode44/unknown-go-server/pkg/material_inventory"
 )
 
 // MaterialHandler manages HTTP operations related to materials.
 // It delegates business logic to the provided material.Service.
 type MaterialHandler struct {
-	service material.Service
+	service   material.Service
+	miService material_inventory.Service
+	drService delivery_record.Service
 }
 
-// NewMaterialHandler returns a new MaterialHandler using the given service.
-func NewMaterialHandler(service material.Service) *MaterialHandler {
-	return &MaterialHandler{service: service}
+// NewMaterialHandler returns a new MaterialHandler using the given services.
+// miService/drService are used by the public endpoint to attach current stock.
+func NewMaterialHandler(service material.Service, miService material_inventory.Service, drService delivery_record.Service) *MaterialHandler {
+	return &MaterialHandler{service: service, miService: miService, drService: drService}
 }
 
 // Create handles POST /materials. It validates the request body and
@@ -102,6 +107,34 @@ func (h *MaterialHandler) GetMaterialsByERP(c *fiber.Ctx) error {
 		Success: true,
 		Data:    presenter.ToMaterialListResponse(materials),
 	})
+}
+
+// PublicByCode returns a limited, unauthenticated view for QR scans of
+// bulk (BDC) materials.
+func (h *MaterialHandler) PublicByCode(c *fiber.Ctx) error {
+	code := c.Params("code")
+	mat, err := h.service.FindByCode(code)
+	if err != nil {
+		return respondError(c, fiber.StatusNotFound, "Material not found")
+	}
+
+	resp := presenter.PublicMaterialResponse{
+		Code:          mat.Code,
+		Name:          mat.Name,
+		Sector:        mat.Sector,
+		UnitOfMeasure: mat.UnitOfMeasure,
+		Group:         string(mat.Group),
+	}
+
+	// Best-effort: si no hay inventario cargado para este material, la
+	// respuesta igual es válida, solo sin current_stock.
+	if inv, err := h.miService.FindByMaterialID(mat.ID); err == nil {
+		if total, err := h.drService.GetTotalQuantity(inv.ID); err == nil {
+			resp.CurrentStock = &total
+		}
+	}
+
+	return c.JSON(presenter.MaterialSuccessResponse{Success: true, Data: resp})
 }
 
 // GetById handles GET /materials/:id. It validates the UUID and

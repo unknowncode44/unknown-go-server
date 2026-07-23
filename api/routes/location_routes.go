@@ -18,3 +18,8 @@ func LocationRoutes(router fiber.Router, handler *handlers.LocationHandler) {
 	locations.Put("/:id", handler.Update)
 	locations.Delete("/:id", handler.Deactivate)
 }
+
+// Public route for unauthenticated location lookup (shelf/estantería QR)
+func PublicLocationRoute(router fiber.Router, handler *handlers.LocationHandler) {
+	router.Get("/location/:id", handler.PublicByID)
+}
