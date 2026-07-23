@@ -45,6 +45,17 @@ type MaterialResponse struct {
 	UpdatedAt     time.Time `json:"updatedAt"`
 }
 
+// PublicMaterialResponse es la vista pública (sin autenticación) que se
+// devuelve al escanear el QR de un material a granel (BDC).
+type PublicMaterialResponse struct {
+	Code          string   `json:"code"`
+	Name          string   `json:"name"`
+	Sector        string   `json:"sector"`
+	UnitOfMeasure string   `json:"unit_of_measure"`
+	Group         string   `json:"group"`
+	CurrentStock  *float64 `json:"current_stock,omitempty"`
+}
+
 // MaterialSuccessResponse representa una respuesta exitosa con uno o más vendors.
 type MaterialSuccessResponse struct {
 	Success bool        `json:"ok"`

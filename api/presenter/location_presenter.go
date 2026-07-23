@@ -29,6 +29,24 @@ type LocationResponse struct {
 	UpdatedAt        time.Time `json:"updated_at"`
 }
 
+// PublicLocationAssetItem es el detalle mínimo de un asset ubicado en una
+// estantería, para la vista pública (QR).
+type PublicLocationAssetItem struct {
+	SerialVisible string `json:"serial_visible"`
+	MaterialName  string `json:"material_name"`
+	MaterialCode  string `json:"material_code"`
+	Status        string `json:"status"`
+}
+
+// PublicLocationResponse es la vista pública (sin autenticación) de una
+// ubicación y los assets serializados que contiene directamente.
+type PublicLocationResponse struct {
+	ID     string                    `json:"id"`
+	Name   string                    `json:"name"`
+	Type   string                    `json:"type"`
+	Assets []PublicLocationAssetItem `json:"assets"`
+}
+
 type LocationSuccessResponse struct {
 	Success bool        `json:"ok"`
 	Data    interface{} `json:"data"`

@@ -49,10 +49,9 @@ func NewFiberServer(conf *config.Config, db database.Database) Server {
 
 	// repos & services
 
-	// Material
+	// Material (handler se construye más abajo, necesita mi/dr services)
 	materialRepo := material.NewRepo(db.GetDb())
 	materialService := material.NewService(materialRepo)
-	materialHandler := handlers.NewMaterialHandler(materialService)
 
 	// Vendor
 	vendorRepo := vendor.NewRepo(db.GetDb())
@@ -69,10 +68,9 @@ func NewFiberServer(conf *config.Config, db database.Database) Server {
 	currencyService := currency.NewService(currencyRepo)
 	currencyHandler := handlers.NewCurrencyHandler(currencyService)
 
-	// Location
+	// Location (handler se construye más abajo, necesita assetService)
 	locationRepo := location.NewRepo(db.GetDb())
 	locationService := location.NewService(locationRepo)
-	locationHandler := handlers.NewLocationHandler(locationService)
 
 	// AssetMovement
 	amRepo := asset_movement.NewRepo(db.GetDb())
@@ -83,6 +81,9 @@ func NewFiberServer(conf *config.Config, db database.Database) Server {
 	assetRepo := asset.NewRepo(db.GetDb())
 	assetService := asset.NewService(assetRepo, materialRepo)
 	assetHandler := handlers.NewAssetHandler(assetService, amService)
+
+	// Location handler (necesita assetService para la ruta pública)
+	locationHandler := handlers.NewLocationHandler(locationService, assetService)
 
 	// MaterialCost
 	mcRepo := material_cost.NewRepo(db.GetDb())
@@ -99,6 +100,9 @@ func NewFiberServer(conf *config.Config, db database.Database) Server {
 
 	miHandler := handlers.NewMaterialInventoryHandler(miService, drService)
 	drHandler := handlers.NewDeliveryRecordHandler(drService)
+
+	// Material handler (necesita mi/dr services para la ruta pública)
+	materialHandler := handlers.NewMaterialHandler(materialService, miService, drService)
 
 	// Need
 	needRepo := need.NewRepo(db.GetDb())
@@ -150,6 +154,8 @@ func NewFiberServer(conf *config.Config, db database.Database) Server {
 	// public routes
 	public := fiberApp.Group("/public")
 	routes.PublicAssetRoute(public, assetHandler)
+	routes.PublicMaterialRoute(public, materialHandler)
+	routes.PublicLocationRoute(public, locationHandler)
 	routes.PublicSyncPurchaseOrdersRoute(public, spoHandler)
 
 	return &fiberServer{

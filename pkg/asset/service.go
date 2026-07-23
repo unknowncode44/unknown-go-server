@@ -15,6 +15,7 @@ type Service interface {
 	FindAll() ([]entities.Asset, error)
 	FindByID(id uuid.UUID) (*entities.Asset, error)
 	FindBySerial(serial string) (*entities.Asset, error)
+	FindByLocationID(locationID uuid.UUID) ([]entities.Asset, error)
 	Update(a *entities.Asset) (*entities.Asset, error)
 	Deactivate(id uuid.UUID) error
 }
@@ -80,6 +81,10 @@ func (s *service) FindBySerial(serial string) (*entities.Asset, error) {
 		return nil, errors.New("serial is required")
 	}
 	return s.repo.FindBySerial(serial)
+}
+
+func (s *service) FindByLocationID(locationID uuid.UUID) ([]entities.Asset, error) {
+	return s.repo.FindByLocationID(locationID)
 }
 
 func (s *service) Update(a *entities.Asset) (*entities.Asset, error) {

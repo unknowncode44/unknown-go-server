@@ -4,16 +4,18 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/unknowncode44/unknown-go-server/api/presenter"
+	"github.com/unknowncode44/unknown-go-server/pkg/asset"
 	"github.com/unknowncode44/unknown-go-server/pkg/entities"
 	"github.com/unknowncode44/unknown-go-server/pkg/location"
 )
 
 type LocationHandler struct {
-	service location.Service
+	service      location.Service
+	assetService asset.Service
 }
 
-func NewLocationHandler(s location.Service) *LocationHandler {
-	return &LocationHandler{service: s}
+func NewLocationHandler(s location.Service, assetService asset.Service) *LocationHandler {
+	return &LocationHandler{service: s, assetService: assetService}
 }
 
 func (h *LocationHandler) Create(c *fiber.Ctx) error {
@@ -62,6 +64,43 @@ func (h *LocationHandler) GetByID(c *fiber.Ctx) error {
 		return respondError(c, fiber.StatusNotFound, err.Error())
 	}
 	return c.JSON(presenter.LocationSuccessResponse{Success: true, Data: presenter.ToLocationResponse(l)})
+}
+
+// PublicByID returns the location's name and the serialized assets
+// currently located there — unauthenticated view for QR scans of
+// shelves/estanterías. Bulk (BDC) materials aren't tracked per-location
+// yet, so this only lists Assets.
+func (h *LocationHandler) PublicByID(c *fiber.Ctx) error {
+	id, err := uuid.Parse(c.Params("id"))
+	if err != nil {
+		return respondError(c, fiber.StatusBadRequest, "Invalid location ID")
+	}
+
+	loc, err := h.service.FindByID(id)
+	if err != nil {
+		return respondError(c, fiber.StatusNotFound, "Location not found")
+	}
+
+	assets, err := h.assetService.FindByLocationID(id)
+	if err != nil {
+		return respondError(c, fiber.StatusInternalServerError, err.Error())
+	}
+
+	resp := presenter.PublicLocationResponse{
+		ID:   loc.ID.String(),
+		Name: loc.Name,
+		Type: string(loc.Type),
+	}
+	for _, a := range assets {
+		resp.Assets = append(resp.Assets, presenter.PublicLocationAssetItem{
+			SerialVisible: a.SerialVisible,
+			MaterialName:  a.Material.Name,
+			MaterialCode:  a.Material.Code,
+			Status:        string(a.Status),
+		})
+	}
+
+	return c.JSON(presenter.LocationSuccessResponse{Success: true, Data: resp})
 }
 
 func (h *LocationHandler) Update(c *fiber.Ctx) error {
