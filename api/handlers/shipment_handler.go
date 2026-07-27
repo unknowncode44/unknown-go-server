@@ -108,14 +108,13 @@ func (h *ShipmentHandler) AddItem(c *fiber.Ctx) error {
 	}
 
 	itemType := entities.ShipmentItemType(strings.ToUpper(strings.TrimSpace(req.Type)))
-	var created *entities.ShipmentItem
 
 	switch itemType {
 	case entities.ShipmentItemTypeAsset:
 		if strings.TrimSpace(req.Serial) == "" {
 			return respondError(c, fiber.StatusBadRequest, "serial is required for type ASSET")
 		}
-		created, err = h.service.AddAssetItem(shipmentID, req.Serial)
+		_, err = h.service.AddAssetItem(shipmentID, req.Serial)
 	case entities.ShipmentItemTypeMaterial:
 		if strings.TrimSpace(req.MaterialCode) == "" {
 			return respondError(c, fiber.StatusBadRequest, "material_code is required for type MATERIAL")
@@ -123,7 +122,7 @@ func (h *ShipmentHandler) AddItem(c *fiber.Ctx) error {
 		if req.Quantity <= 0 {
 			return respondError(c, fiber.StatusBadRequest, "quantity must be greater than zero for type MATERIAL")
 		}
-		created, err = h.service.AddMaterialItem(shipmentID, req.MaterialCode, req.Quantity)
+		_, err = h.service.AddMaterialItem(shipmentID, req.MaterialCode, req.Quantity)
 	default:
 		return respondError(c, fiber.StatusBadRequest, "type must be ASSET or MATERIAL")
 	}
@@ -132,9 +131,17 @@ func (h *ShipmentHandler) AddItem(c *fiber.Ctx) error {
 		return respondError(c, fiber.StatusBadRequest, err.Error())
 	}
 
+	// El frontend necesita el envío completo (con su array `items` actualizado)
+	// para refrescar la lista, no el ítem suelto: se re-consulta el shipment,
+	// que ya viene con Preload("Items").
+	updated, err := h.service.FindByID(shipmentID)
+	if err != nil {
+		return respondError(c, fiber.StatusInternalServerError, err.Error())
+	}
+
 	return c.Status(fiber.StatusCreated).JSON(presenter.ShipmentSuccessResponse{
 		Success: true,
-		Data:    presenter.ToShipmentItemResponse(created),
+		Data:    presenter.ToShipmentResponse(updated),
 	})
 }
 
@@ -153,7 +160,17 @@ func (h *ShipmentHandler) RemoveItem(c *fiber.Ctx) error {
 		return respondError(c, fiber.StatusBadRequest, err.Error())
 	}
 
-	return c.SendStatus(fiber.StatusNoContent)
+	// Igual que AddItem: se devuelve el envío completo ya sin el ítem, para que
+	// el frontend actualice su lista con la misma fuente de verdad.
+	updated, err := h.service.FindByID(shipmentID)
+	if err != nil {
+		return respondError(c, fiber.StatusInternalServerError, err.Error())
+	}
+
+	return c.JSON(presenter.ShipmentSuccessResponse{
+		Success: true,
+		Data:    presenter.ToShipmentResponse(updated),
+	})
 }
 
 // Process handles POST /shipments/:id/process.
