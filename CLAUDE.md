@@ -97,6 +97,13 @@ go vet ./...
 and the `db.*` connection settings (host, port, user, password, dbname,
 timezone). Do not commit real credentials.
 
+## Pending fixes
+
+Currently diagnosed but not yet fixed — see
+[docs/PENDING_FIXES.md](docs/PENDING_FIXES.md) for root causes already
+confirmed by reading the actual code (Purchase Order sync duplication,
+public location view returning empty for parent-level locations).
+
 ## Git / workflow notes
 
 - The active development branch is `quinar_main_branch`; the `main` branch is

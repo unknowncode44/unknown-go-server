@@ -4,6 +4,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/unknowncode44/unknown-go-server/pkg/entities"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type Repository interface {
@@ -21,8 +22,21 @@ func NewRepo(db *gorm.DB) Repository {
 	return &repository{db: db}
 }
 
+// BatchCreate upserts by the (oc_bejerman, articulo) natural key — the VBA
+// macro resends whole date ranges on every run (no local "already sent"
+// tracking), so the same line is retransmitted whenever ranges overlap.
+// On conflict it refreshes only the fields the Excel actually carries;
+// material_id/vendor_id are deliberately left out so a resync never wipes
+// out links assigned by hand from the Purchase Orders view.
 func (r *repository) BatchCreate(orders []entities.PurchaseOrderSync) error {
-	return r.db.Create(&orders).Error
+	return r.db.Clauses(clause.OnConflict{
+		Columns: []clause.Column{{Name: "oc_bejerman"}, {Name: "articulo"}},
+		DoUpdates: clause.AssignmentColumns([]string{
+			"cco", "nota_pedido", "fecha_np", "fecha_oc",
+			"descripcion", "cantidad", "proveedor", "moneda",
+			"importe_unitario", "sincronizado_en",
+		}),
+	}).Create(&orders).Error
 }
 
 // FindAll retrieves all synced purchase orders
