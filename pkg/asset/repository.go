@@ -114,11 +114,27 @@ func (r *repository) FindBySerial(serial string) (*entities.Asset, error) {
 	return &a, nil
 }
 
-// FindByLocationID returns all assets currently located at the given location.
-// Material is preloaded so callers can show the material name/code.
+// FindByLocationID returns all assets located at the given location OR any
+// of its descendants. Location is hierarchical (a QR can be printed for a
+// parent node like a full shelf, not just leaf nodes — see
+// LocationTreeNode.vue, "Generar QR" is available on every node), so an
+// exact match on current_location_id would miss assets that live on a leaf
+// underneath the scanned node. Material is preloaded so callers can show
+// the material name/code.
 func (r *repository) FindByLocationID(locationID uuid.UUID) ([]entities.Asset, error) {
+	const descendantsCTE = `
+		WITH RECURSIVE descendants AS (
+			SELECT id FROM locations WHERE id = ?
+			UNION ALL
+			SELECT l.id FROM locations l
+			INNER JOIN descendants d ON l.parent_location_id = d.id
+		)
+		SELECT id FROM descendants
+	`
 	var list []entities.Asset
-	if err := r.db.Preload("Material").Where("current_location_id = ?", locationID).Find(&list).Error; err != nil {
+	if err := r.db.Preload("Material").
+		Where("current_location_id IN ("+descendantsCTE+")", locationID).
+		Find(&list).Error; err != nil {
 		return nil, err
 	}
 	return list, nil
