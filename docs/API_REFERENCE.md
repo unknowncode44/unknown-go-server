@@ -200,7 +200,7 @@ Create a material.
 |-------|------|----------|-------|
 | `name` | string | **yes** | rejected if empty |
 | `sector` | string | no | business sector |
-| `group` | string | **yes** | `BDC` (Bienes de Cambio) or `BDU` (Bienes de Uso); rejected otherwise |
+| `group` | string | **yes** | `BDC` (Bienes de Cambio), `BDU` (Bienes de Uso) or `CUSTODIA` (client-owned material held by Quinar); rejected otherwise |
 | `unitOfMeasure` | string | no | meter, unit, kg, … |
 | `erpCode` | string | no | external ERP code |
 | `internalCode` | string | no | required later to create Assets |
@@ -263,7 +263,7 @@ path segment before querying.
 Update a material. At least one of `name`, `sector`, `group`, `unitOfMeasure`,
 `erpCode` must be provided, otherwise `400 "No fields provided for update"`.
 (Only those five fields are applied by the handler.) If `group` is provided it
-must be `BDC` or `BDU`.
+must be `BDC`, `BDU` or `CUSTODIA`.
 
 ```json
 { "name": "Steel Bolt M8 (zinc)", "sector": "Hardware", "group": "BDC", "unitOfMeasure": "pcs", "erpCode": "ERP-99999" }
