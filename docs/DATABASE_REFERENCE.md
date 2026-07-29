@@ -95,7 +95,7 @@ Column legend: **PK** = primary key, **FK** = participates in a relationship
 | `id` | ID | uuid | PK, default `uuid_generate_v4()` | |
 | `name` | Name | varchar(255) | NN | |
 | `sector` | Sector | varchar(100) | NN | business sector (electrical, RF…) |
-| `material_group` | Group | varchar(10) | NN, default `'BDC'` | business group: `BDC` (Bienes de Cambio) or `BDU` (Bienes de Uso); explicit column name because `group` is a reserved word in SQL |
+| `material_group` | Group | varchar(10) | NN, default `'BDC'` | business group: `BDC` (Bienes de Cambio), `BDU` (Bienes de Uso) or `CUSTODIA` (client-owned, held by Quinar); explicit column name because `group` is a reserved word in SQL |
 | `unit_of_measure` | UnitOfMeasure | varchar(50) | NN | meter, unit, kg… |
 | `erp_code` | ERPCode | text | IX | external ERP code |
 | `internal_code` | InternalCode | text | UQ | used to generate asset serials |
@@ -369,6 +369,7 @@ DB-level CHECK constraints; valid values are enforced **(app-level)**.
 |-------|---------|
 | `BDC` | Bienes de Cambio — materials sold to / installed at clients (bulk or serialized) |
 | `BDU` | Bienes de Uso — Quinar's own infrastructure assets (always serialized) |
+| `CUSTODIA` | Client-owned material physically held by Quinar (not Quinar's own stock) — hidden by default in the Materials/Assets list views |
 
 **`AssetStatus`** — `assets.status`
 | Value | Meaning |

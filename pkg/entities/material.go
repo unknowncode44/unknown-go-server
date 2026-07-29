@@ -11,9 +11,20 @@ import (
 type MaterialGroup string
 
 const (
-	MaterialGroupBDC MaterialGroup = "BDC" // Bienes de Cambio: materiales para vender/instalar en clientes
-	MaterialGroupBDU MaterialGroup = "BDU" // Bienes de Uso: activos de infraestructura propia
+	MaterialGroupBDC      MaterialGroup = "BDC"      // Bienes de Cambio: materiales para vender/instalar en clientes
+	MaterialGroupBDU      MaterialGroup = "BDU"      // Bienes de Uso: activos de infraestructura propia
+	MaterialGroupCustodia MaterialGroup = "CUSTODIA" // Propiedad de un cliente, en poder físico de Quinar (no es stock propio)
 )
+
+// IsValid reports whether g is one of the known MaterialGroup values.
+func (g MaterialGroup) IsValid() bool {
+	switch g {
+	case MaterialGroupBDC, MaterialGroupBDU, MaterialGroupCustodia:
+		return true
+	default:
+		return false
+	}
+}
 
 // Material represents a material resource used by the application.
 //
