@@ -32,10 +32,11 @@ type LocationResponse struct {
 // PublicLocationAssetItem es el detalle mínimo de un asset ubicado en una
 // estantería, para la vista pública (QR).
 type PublicLocationAssetItem struct {
-	SerialVisible string `json:"serial_visible"`
-	MaterialName  string `json:"material_name"`
-	MaterialCode  string `json:"material_code"`
-	Status        string `json:"status"`
+	SerialVisible      string `json:"serial_visible"`
+	ManufacturerSerial string `json:"manufacturer_serial,omitempty"`
+	MaterialName       string `json:"material_name"`
+	MaterialCode       string `json:"material_code"`
+	Status             string `json:"status"`
 }
 
 // PublicLocationResponse es la vista pública (sin autenticación) de una

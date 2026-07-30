@@ -92,11 +92,16 @@ func (h *LocationHandler) PublicByID(c *fiber.Ctx) error {
 		Type: string(loc.Type),
 	}
 	for _, a := range assets {
+		var manufacturerSerial string
+		if a.ManufacturerSerial != nil {
+			manufacturerSerial = *a.ManufacturerSerial
+		}
 		resp.Assets = append(resp.Assets, presenter.PublicLocationAssetItem{
-			SerialVisible: a.SerialVisible,
-			MaterialName:  a.Material.Name,
-			MaterialCode:  a.Material.Code,
-			Status:        string(a.Status),
+			SerialVisible:      a.SerialVisible,
+			ManufacturerSerial: manufacturerSerial,
+			MaterialName:       a.Material.Name,
+			MaterialCode:       a.Material.Code,
+			Status:             string(a.Status),
 		})
 	}
 
