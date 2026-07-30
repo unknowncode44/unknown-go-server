@@ -170,7 +170,8 @@ func (h *MaterialHandler) Update(c *fiber.Ctx) error {
 	}
 
 	// require at least one field to update
-	if req.Name == "" && req.Sector == "" && req.Group == "" && req.UnitOfMeasure == "" && req.ERPCode == "" {
+	if req.Name == "" && req.Sector == "" && req.Group == "" && req.UnitOfMeasure == "" &&
+		req.ERPCode == "" && req.InternalCode == "" && req.Code == "" {
 		return respondError(c, fiber.StatusBadRequest, "No fields provided for update")
 	}
 
@@ -197,6 +198,14 @@ func (h *MaterialHandler) Update(c *fiber.Ctx) error {
 
 	if req.ERPCode != "" {
 		mat.ERPCode = req.ERPCode
+	}
+
+	if req.InternalCode != "" {
+		mat.InternalCode = &req.InternalCode
+	}
+
+	if req.Code != "" {
+		mat.Code = req.Code
 	}
 
 	updated, err := h.service.Update(mat)
