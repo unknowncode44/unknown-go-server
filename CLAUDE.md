@@ -99,10 +99,10 @@ timezone). Do not commit real credentials.
 
 ## Pending fixes
 
-Currently diagnosed but not yet fixed — see
-[docs/PENDING_FIXES.md](docs/PENDING_FIXES.md) for root causes already
-confirmed by reading the actual code (Purchase Order sync duplication,
-public location view returning empty for parent-level locations).
+See [.claude/PENDING_FIXES.md](.claude/PENDING_FIXES.md) — currently just
+resolved-history entries (Purchase Order sync duplication, public location
+view returning empty for parent-level locations), kept for their root-cause
+diagnosis in case of regression. No open backend items at the moment.
 
 ## Git / workflow notes
 
