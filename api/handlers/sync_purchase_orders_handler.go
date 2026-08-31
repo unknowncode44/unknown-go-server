@@ -33,7 +33,7 @@ func (h *SyncPurchaseOrderHandler) SyncPurchaseOrders(c *fiber.Ctx) error {
 	return c.Status(201).JSON(presenter.SyncResponse{
 		Ok:      true,
 		Message: "Sync completed",
-		Data:    fiber.Map{"records_synced": count},
+		Data:    fiber.Map{"records_received": len(request), "records_synced": count},
 	})
 }
 

@@ -29,6 +29,11 @@ func NewRepo(db *gorm.DB) Repository {
 // material_id/vendor_id are deliberately left out so a resync never wipes
 // out links assigned by hand from the Purchase Orders view.
 func (r *repository) BatchCreate(orders []entities.PurchaseOrderSync) error {
+	// GORM devuelve "empty slice found" si se le pasa un batch vacio.
+	if len(orders) == 0 {
+		return nil
+	}
+
 	return r.db.Clauses(clause.OnConflict{
 		Columns: []clause.Column{{Name: "oc_bejerman"}, {Name: "articulo"}},
 		DoUpdates: clause.AssignmentColumns([]string{
